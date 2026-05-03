@@ -32,7 +32,13 @@ npm run dev -w @solana-mev-bot/worker
 1. Create a Postgres database (Neon, Supabase, or Vercel Postgres) and set `DATABASE_URL` in the Vercel project.
 2. In the Vercel project, set **Root Directory** to `apps/web`, **Install command** to `cd ../.. && npm install`, **Build command** to `npx prisma generate && next build`.
 3. Add `ENGINE_INGEST_SECRET` (same value you give the worker).
-4. Run migrations once: `cd apps/web && npx prisma migrate dev` locally pointing at production DB, **or** `npx prisma db push` for a quick schema sync.
+4. **Create tables once** in the same database Vercel uses (copy `DATABASE_URL` from Vercel or Neon):
+   ```bash
+   cd apps/web
+   export DATABASE_URL="postgresql://…"   # same as Vercel
+   npx prisma migrate deploy
+   ```
+   (Alternative: `npx prisma db push` if you prefer not to use migration files.)
 
 ## Deploy worker
 

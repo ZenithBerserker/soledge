@@ -15,6 +15,13 @@ export default async function Page() {
     dbError = e instanceof Error ? e.message : 'Database query failed'
   }
 
+  const missingEnv =
+    dbError?.includes('DATABASE_URL') && dbError?.includes('Environment variable not found')
+  const missingTable =
+    dbError?.includes('does not exist') ||
+    dbError?.includes('relation') ||
+    dbError?.includes('OpportunityLog')
+
   return (
     <main>
       <h1>Meteora DLMM scanner feed</h1>
@@ -26,20 +33,46 @@ export default async function Page() {
 
       {dbError && (
         <div className="alert alert-error" role="alert">
-          <strong>Database not reachable</strong>
+          <strong>{missingTable ? 'Tables not created yet' : 'Database error'}</strong>
           <span className="mono" style={{ fontSize: '0.8rem', opacity: 0.9 }}>
             {dbError}
           </span>
           <ul style={{ margin: '0.75rem 0 0', paddingLeft: '1.25rem' }}>
-            <li>
-              In Vercel → Project → Settings → Environment Variables, add <code className="mono">DATABASE_URL</code>{' '}
-              from Neon or Supabase (often ends with <code className="mono">?sslmode=require</code>).
-            </li>
-            <li>
-              Create tables once from your machine:{' '}
-              <code className="mono">cd apps/web && DATABASE_URL=&quot;…&quot; npx prisma db push</code>
-            </li>
-            <li>Redeploy after changing env vars.</li>
+            {missingEnv && (
+              <li>
+                In Vercel → Settings → Environment Variables, add <code className="mono">DATABASE_URL</code> (same
+                string as Neon). Enable <strong>Production</strong>, then <strong>Redeploy</strong>.
+              </li>
+            )}
+            {missingTable && (
+              <li>
+                Apply the migration once using the <strong>exact same</strong>{' '}
+                <code className="mono">DATABASE_URL</code> as Vercel (copy from Neon):
+                <pre
+                  className="mono"
+                  style={{
+                    marginTop: '0.5rem',
+                    padding: '0.75rem',
+                    background: 'rgba(0,0,0,0.25)',
+                    borderRadius: 8,
+                    fontSize: '0.75rem',
+                    overflow: 'auto',
+                  }}
+                >
+                  {`cd apps/web
+export DATABASE_URL="paste-your-neon-connection-string-here"
+npx prisma migrate deploy`}
+                </pre>
+                Alternative (no migration history):{' '}
+                <code className="mono">npx prisma db push</code>
+              </li>
+            )}
+            {!missingEnv && !missingTable && (
+              <li>
+                Check <a href="/api/health">/api/health</a> and verify <code className="mono">DATABASE_URL</code> in
+                Vercel matches your Neon project.
+              </li>
+            )}
           </ul>
         </div>
       )}
