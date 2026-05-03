@@ -1,0 +1,726 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0c0f;--bg2:#0f1217;--bg3:#141820;--bg4:#1a2030;
+  --border:#1e2535;--border2:#252d40;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --green:#00ff88;--green2:#00cc6a;--green-bg:rgba(0,255,136,0.08);
+  --red:#ff4560;--red2:#cc2a40;--red-bg:rgba(255,69,96,0.08);
+  --amber:#f59e0b;--amber-bg:rgba(245,158,11,0.08);
+  --blue:#3b82f6;--blue-bg:rgba(59,130,246,0.08);
+  --purple:#a855f7;--purple-bg:rgba(168,85,247,0.08);
+  --cyan:#06b6d4;
+  --font-mono:'JetBrains Mono',monospace;
+  --font-ui:'Space Grotesk',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size:13px;min-height:100vh;overflow-x:hidden}
+
+/* Layout */
+.terminal{display:flex;flex-direction:column;height:100vh;min-height:600px}
+.topbar{display:flex;align-items:center;gap:12px;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{font-weight:700;font-size:15px;letter-spacing:-0.5px;color:var(--text)}
+.logo span{color:var(--green)}
+.status-pill{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-family:var(--font-mono);font-weight:500}
+.status-pill.live{background:var(--green-bg);color:var(--green);border:1px solid rgba(0,255,136,0.2)}
+.status-pill.warn{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,158,11,0.2)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.metric-chip{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-family:var(--font-mono);font-size:11px;color:var(--text2)}
+.metric-chip span{color:var(--text)}
+
+.main{display:grid;grid-template-columns:260px 1fr 300px;gap:0;flex:1;overflow:hidden}
+
+/* Sidebar */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.panel-title{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 14px 6px;border-bottom:1px solid var(--border)}
+.wallet-list{flex:1;overflow-y:auto}
+.wallet-item{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.wallet-item:hover{background:var(--bg3)}
+.wallet-item.active{background:var(--bg3);border-left:2px solid var(--green)}
+.wallet-avatar{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--font-mono);flex-shrink:0}
+.wallet-info{flex:1;min-width:0}
+.wallet-addr{font-family:var(--font-mono);font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wallet-pnl{font-family:var(--font-mono);font-size:10px;font-weight:600}
+.wallet-pnl.up{color:var(--green)}
+.wallet-pnl.dn{color:var(--red)}
+.wallet-meta{font-size:10px;color:var(--text3)}
+.win-badge{font-size:9px;font-family:var(--font-mono);padding:1px 5px;border-radius:3px;background:var(--green-bg);color:var(--green)}
+
+/* Center */
+.center{display:flex;flex-direction:column;overflow:hidden}
+.tab-bar{display:flex;gap:0;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{padding:9px 16px;font-size:11px;font-weight:600;letter-spacing:0.5px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--text2);background:var(--bg3)}
+.tab.active{color:var(--green);border-bottom-color:var(--green)}
+.feed-area{flex:1;overflow-y:auto;padding:0}
+
+/* Token cards */
+.token-card{border-bottom:1px solid var(--border);padding:12px 16px;cursor:pointer;transition:background .15s;position:relative}
+.token-card:hover{background:var(--bg3)}
+.token-card.flash{animation:cardflash .4s ease-out}
+@keyframes cardflash{0%{background:rgba(0,255,136,0.12)}100%{background:transparent}}
+.tc-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.token-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.token-name{font-weight:600;font-size:13px;color:var(--text)}
+.token-sym{font-family:var(--font-mono);font-size:11px;color:var(--text3)}
+.token-age{font-family:var(--font-mono);font-size:10px;color:var(--text3);margin-left:auto}
+.score-bar{display:flex;gap:4px;margin-bottom:7px}
+.check{display:flex;align-items:center;gap:3px;font-size:10px;font-family:var(--font-mono);padding:2px 6px;border-radius:3px}
+.check.pass{background:var(--green-bg);color:var(--green)}
+.check.fail{background:var(--red-bg);color:var(--red)}
+.check.warn{background:var(--amber-bg);color:var(--amber)}
+.check.info{background:var(--blue-bg);color:var(--blue)}
+.tc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:7px}
+.stat{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:5px 7px}
+.stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+.stat-val{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--text);margin-top:2px}
+.stat-val.up{color:var(--green)}
+.stat-val.dn{color:var(--red)}
+.stat-val.warn{color:var(--amber)}
+.signal-row{display:flex;align-items:center;gap:6px}
+.signal{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)}
+.signal-icon{width:8px;height:8px;border-radius:50%}
+.signal-icon.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+.signal-icon.off{background:var(--text3)}
+.signal-icon.warn{background:var(--amber)}
+.action-btn{margin-left:auto;padding:4px 12px;border-radius:5px;font-size:11px;font-weight:600;font-family:var(--font-ui);cursor:pointer;border:none;transition:all .15s}
+.action-btn.buy{background:var(--green);color:#000}
+.action-btn.buy:hover{background:var(--green2)}
+.action-btn.skip{background:var(--bg4);color:var(--text3);border:1px solid var(--border2)}
+.action-btn.skip:hover{background:var(--bg3)}
+
+/* Score ring */
+.score-ring{width:36px;height:36px;flex-shrink:0}
+
+/* Right panel */
+.rpanel{background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.rp-section{border-bottom:1px solid var(--border)}
+.rp-section-title{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 14px 6px;display:flex;align-items:center;justify-content:space-between}
+.rp-section-title span{color:var(--text2);font-family:var(--font-mono);font-size:10px;font-weight:400;letter-spacing:0}
+
+/* Jito meter */
+.jito-meter{padding:10px 14px}
+.tip-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.tip-label{font-size:10px;color:var(--text3)}
+.tip-val{font-family:var(--font-mono);font-size:11px;color:var(--text)}
+.tip-bar-wrap{background:var(--bg3);border-radius:3px;height:3px;margin-bottom:8px;overflow:hidden}
+.tip-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--green),var(--cyan));transition:width .5s}
+.tip-input-row{display:flex;align-items:center;gap:8px;margin-top:4px}
+.tip-input-row label{font-size:10px;color:var(--text3);white-space:nowrap}
+.tip-input-row input[type=range]{flex:1;accent-color:var(--green)}
+.tip-amount{font-family:var(--font-mono);font-size:11px;color:var(--green);min-width:60px;text-align:right}
+
+/* Sentiment */
+.sentiment-list{padding:6px 0;overflow-y:auto;max-height:140px}
+.sent-item{display:flex;align-items:flex-start;gap:8px;padding:5px 14px;font-size:11px}
+.sent-item:hover{background:var(--bg3)}
+.sent-ticker{font-family:var(--font-mono);font-weight:600;font-size:10px;padding:1px 5px;border-radius:3px}
+.sent-ticker.bull{background:var(--green-bg);color:var(--green)}
+.sent-ticker.bear{background:var(--red-bg);color:var(--red)}
+.sent-text{color:var(--text2);line-height:1.4;flex:1}
+.sent-vel{font-family:var(--font-mono);font-size:10px;margin-left:auto;white-space:nowrap}
+.sent-vel.up{color:var(--green)}
+.sent-vel.dn{color:var(--red)}
+
+/* Alerts */
+.alert-list{overflow-y:auto;flex:1;min-height:0}
+.alert-item{display:flex;align-items:flex-start;gap:8px;padding:7px 14px;border-bottom:1px solid var(--border);font-size:11px}
+.alert-item.new{animation:alertin .3s ease-out}
+@keyframes alertin{0%{background:rgba(0,255,136,0.1)}100%{background:transparent}}
+.alert-icon{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:1px}
+.alert-icon.rug{background:var(--red-bg);color:var(--red)}
+.alert-icon.alpha{background:var(--green-bg);color:var(--green)}
+.alert-icon.whale{background:var(--blue-bg);color:var(--blue)}
+.alert-icon.exit{background:var(--amber-bg);color:var(--amber)}
+.alert-body{flex:1;line-height:1.4}
+.alert-title{font-weight:600;color:var(--text);margin-bottom:2px}
+.alert-detail{color:var(--text3);font-family:var(--font-mono);font-size:10px}
+.alert-time{font-family:var(--font-mono);font-size:10px;color:var(--text3);white-space:nowrap;margin-top:2px}
+
+/* Latency bar */
+.lat-row{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border)}
+.lat-label{font-size:10px;color:var(--text3);width:80px}
+.lat-bar-wrap{flex:1;background:var(--bg3);height:4px;border-radius:2px;overflow:hidden}
+.lat-bar{height:100%;border-radius:2px;transition:width .8s}
+.lat-val{font-family:var(--font-mono);font-size:10px;color:var(--text2);width:45px;text-align:right}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* Filter toolbar */
+.filter-bar{display:flex;gap:6px;padding:8px 12px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;align-items:center}
+.filter-btn{padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text3);transition:all .15s;font-family:var(--font-ui)}
+.filter-btn.on{background:var(--green-bg);color:var(--green);border-color:rgba(0,255,136,0.3)}
+.filter-sep{width:1px;height:16px;background:var(--border);margin:0 2px}
+.filter-label{font-size:10px;color:var(--text3);white-space:nowrap}
+
+/* Empty state */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:12px;gap:8px}
+
+/* Minimap / sparkline */
+.sparkline{display:inline-block;vertical-align:middle}
+
+.tag{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;font-family:var(--font-mono)}
+.tag.new{background:var(--purple-bg);color:var(--purple)}
+.tag.hot{background:rgba(255,69,96,0.15);color:var(--red)}
+.tag.smart{background:var(--cyan-bg, rgba(6,182,212,0.1));color:var(--cyan)}
+
+</style>
+</head>
+<body>
+<div class="terminal">
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="logo">SOL<span>EDGE</span></div>
+  <div class="status-pill live"><span class="dot"></span>SHREDSTREAM</div>
+  <div class="status-pill live"><span class="dot"></span>JITO LIVE</div>
+  <div class="status-pill warn"><span class="dot"></span>GEYSER 2/3</div>
+  <div class="topbar-right">
+    <div class="metric-chip">TPS <span id="tps-val">4,812</span></div>
+    <div class="metric-chip">SLOT <span id="slot-val">287,441,902</span></div>
+    <div class="metric-chip">SOL <span id="sol-val">$142.38</span></div>
+    <div class="metric-chip">P&L <span id="pnl-val" style="color:var(--green)">+$4,281</span></div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- Left: Smart Money Wallets -->
+<div class="sidebar">
+  <div class="panel-title">SMART MONEY WALLETS <span style="font-family:var(--font-mono);font-size:9px;color:var(--green);letter-spacing:0;text-transform:none;font-weight:400;margin-left:4px">● TRACKING 12</span></div>
+  <div class="wallet-list" id="wallet-list"></div>
+  <div style="padding:10px 14px;border-top:1px solid var(--border)">
+    <div class="panel-title" style="padding:0 0 6px;border:none">DEPLOYER REP</div>
+    <div id="deployer-rep" style="font-family:var(--font-mono);font-size:11px;color:var(--text2);line-height:1.8"></div>
+  </div>
+</div>
+
+<!-- Center: Token Feed -->
+<div class="center">
+  <div class="filter-bar">
+    <span class="filter-label">FILTERS</span>
+    <button class="filter-btn on" id="f-mint" onclick="toggleFilter('mint',this)">MINT NULL</button>
+    <button class="filter-btn on" id="f-freeze" onclick="toggleFilter('freeze',this)">FREEZE NULL</button>
+    <button class="filter-btn on" id="f-lp" onclick="toggleFilter('lp',this)">LP LOCKED</button>
+    <div class="filter-sep"></div>
+    <button class="filter-btn on" id="f-smart" onclick="toggleFilter('smart',this)">SMART $</button>
+    <button class="filter-btn on" id="f-sentiment" onclick="toggleFilter('sentiment',this)">SENTIMENT</button>
+    <div class="filter-sep"></div>
+    <button class="filter-btn" id="f-live" onclick="toggleLiveFeed(this)">⏸ PAUSE</button>
+  </div>
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('live',this)">LIVE FEED</div>
+    <div class="tab" onclick="switchTab('smart',this)">SMART MONEY</div>
+    <div class="tab" onclick="switchTab('rugs',this)">RUG DETECTOR</div>
+    <div class="tab" onclick="switchTab('backtest',this)">BACKTEST</div>
+  </div>
+  <div class="feed-area" id="feed-area"></div>
+</div>
+
+<!-- Right Panel -->
+<div class="rpanel">
+  <!-- Jito -->
+  <div class="rp-section">
+    <div class="rp-section-title">JITO TIP ENGINE <span id="tip-mode">AUTO</span></div>
+    <div class="jito-meter">
+      <div class="tip-row"><span class="tip-label">P25</span><span class="tip-val" id="tip-p25">0.0003 SOL</span></div>
+      <div class="tip-bar-wrap"><div class="tip-bar" id="tb25" style="width:20%"></div></div>
+      <div class="tip-row"><span class="tip-label">P75</span><span class="tip-val" id="tip-p75">0.0018 SOL</span></div>
+      <div class="tip-bar-wrap"><div class="tip-bar" id="tb75" style="width:55%"></div></div>
+      <div class="tip-row"><span class="tip-label">P99</span><span class="tip-val" id="tip-p99">0.0072 SOL</span></div>
+      <div class="tip-bar-wrap"><div class="tip-bar" id="tb99" style="width:90%"></div></div>
+      <div class="tip-input-row">
+        <label>MY TIP</label>
+        <input type="range" min="1" max="100" value="60" oninput="setMyTip(this.value)">
+        <span class="tip-amount" id="my-tip-val">0.0043 SOL</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <div style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:5px 8px;text-align:center">
+          <div style="font-size:9px;color:var(--text3)">LANDED</div>
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--green)" id="landed-rate">91%</div>
+        </div>
+        <div style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:5px 8px;text-align:center">
+          <div style="font-size:9px;color:var(--text3)">REVERTS</div>
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--amber)" id="revert-rate">9%</div>
+        </div>
+        <div style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:5px 8px;text-align:center">
+          <div style="font-size:9px;color:var(--text3)">BUNDLES</div>
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--cyan)" id="bundle-count">247</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Latency -->
+  <div class="rp-section">
+    <div class="rp-section-title">LATENCY FEEDS</div>
+    <div class="lat-row">
+      <span class="lat-label">ShredStream</span>
+      <div class="lat-bar-wrap"><div class="lat-bar" id="lb-shred" style="width:8%;background:var(--green)"></div></div>
+      <span class="lat-val" id="lv-shred" style="color:var(--green)">12ms</span>
+    </div>
+    <div class="lat-row">
+      <span class="lat-label">Yellowstone</span>
+      <div class="lat-bar-wrap"><div class="lat-bar" id="lb-yellow" style="width:25%;background:var(--cyan)"></div></div>
+      <span class="lat-val" id="lv-yellow">67ms</span>
+    </div>
+    <div class="lat-row">
+      <span class="lat-label">bloXroute</span>
+      <div class="lat-bar-wrap"><div class="lat-bar" id="lb-blox" style="width:30%;background:var(--blue)"></div></div>
+      <span class="lat-val" id="lv-blox">82ms</span>
+    </div>
+    <div class="lat-row">
+      <span class="lat-label">Public RPC</span>
+      <div class="lat-bar-wrap"><div class="lat-bar" id="lb-rpc" style="width:85%;background:var(--red)"></div></div>
+      <span class="lat-val" id="lv-rpc" style="color:var(--red)">281ms</span>
+    </div>
+  </div>
+
+  <!-- Sentiment -->
+  <div class="rp-section" style="flex:0 0 auto">
+    <div class="rp-section-title">SOCIAL SENTIMENT <span id="sent-count">0 signals</span></div>
+    <div class="sentiment-list" id="sent-list"></div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="rp-section" style="flex:1;display:flex;flex-direction:column;min-height:0">
+    <div class="rp-section-title">ALPHA ALERTS <span id="alert-count">0</span></div>
+    <div class="alert-list" id="alert-list"></div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+// ---- State ----
+const filters = {mint:true,freeze:true,lp:true,smart:true,sentiment:true};
+let livePaused = false;
+let alertCount = 0;
+let bundleCount = 247;
+let tokens = [];
+let sentiments = [];
+let alerts = [];
+let currentTab = 'live';
+
+// ---- Smart Money Wallets ----
+const wallets = [
+  {addr:'7xKf...mQw2',pnl:'+$284K',win:'94%',trades:182,color:'#00ff88',bg:'rgba(0,255,136,0.12)',label:'INSIDER-1'},
+  {addr:'3rPn...bVk9',pnl:'+$127K',win:'87%',trades:94,color:'#06b6d4',bg:'rgba(6,182,212,0.12)',label:'ALPHA-7'},
+  {addr:'9mTq...xL04',pnl:'+$98K',win:'82%',trades:211,color:'#a855f7',bg:'rgba(168,85,247,0.12)',label:'WHALE-3'},
+  {addr:'2wRs...pN17',pnl:'+$61K',win:'79%',trades:58,color:'#f59e0b',bg:'rgba(245,158,11,0.12)',label:'DEV-MW'},
+  {addr:'5hKj...cT33',pnl:'+$43K',win:'76%',trades:143,color:'#3b82f6',bg:'rgba(59,130,246,0.12)',label:'BOT-X'},
+  {addr:'8dLm...nW91',pnl:'-$8K',win:'41%',trades:29,color:'#ff4560',bg:'rgba(255,69,96,0.08)',label:'FADE'},
+];
+
+function renderWallets(){
+  const el = document.getElementById('wallet-list');
+  el.innerHTML = wallets.map((w,i)=>`
+    <div class="wallet-item${i===0?' active':''}" onclick="selectWallet(${i})">
+      <div class="wallet-avatar" style="background:${w.bg};color:${w.color}">${w.label.slice(0,2)}</div>
+      <div class="wallet-info">
+        <div class="wallet-addr">${w.addr}</div>
+        <div class="wallet-meta">${w.trades} trades</div>
+      </div>
+      <div style="text-align:right">
+        <div class="wallet-pnl ${w.pnl.startsWith('+')?'up':'dn'}">${w.pnl}</div>
+        <div class="win-badge">${w.win} win</div>
+      </div>
+    </div>`).join('');
+}
+
+function selectWallet(i){
+  document.querySelectorAll('.wallet-item').forEach((el,j)=>el.classList.toggle('active',i===j));
+}
+
+// ---- Deployer Rep ----
+function renderDeployerRep(){
+  const deployerData = [
+    {addr:'9xRp...kW2',score:92,label:'CLEAN',color:'var(--green)'},
+    {addr:'4mNs...qL8',score:11,label:'RUG ×4',color:'var(--red)'},
+    {addr:'7tVm...hJ5',score:67,label:'NEUTRAL',color:'var(--amber)'},
+  ];
+  document.getElementById('deployer-rep').innerHTML = deployerData.map(d=>
+    `<div style="display:flex;align-items:center;gap:6px;padding:2px 0">
+      <span style="color:${d.color};font-size:9px;width:14px">●</span>
+      <span style="color:var(--text3)">${d.addr}</span>
+      <span style="margin-left:auto;color:${d.color}">${d.label}</span>
+    </div>`
+  ).join('');
+}
+
+// ---- Token generation ----
+const tokenNames = ['MOCHI','BONK2','PEPE3','DOGE2','CHAD','BASED','GEM','ALPHA','SIGMA','MOON','COPE','WAGMI','NGMI','FROG','CAT9','DEGEN','SEND','GOAT','VIBE','PUMP'];
+const colors = ['#00ff88','#06b6d4','#a855f7','#f59e0b','#3b82f6','#ff4560','#ec4899'];
+
+function randomToken(){
+  const name = tokenNames[Math.floor(Math.random()*tokenNames.length)];
+  const hasMintRisk = Math.random() < 0.12;
+  const hasFreezeRisk = Math.random() < 0.18;
+  const hasLpRisk = Math.random() < 0.15;
+  const smartBuying = Math.random() < 0.35;
+  const sentimentSurge = Math.random() < 0.4;
+  const topConc = (Math.random()*60+5).toFixed(1);
+  const isHighConc = parseFloat(topConc) > 30;
+  const liq = (Math.random()*80+5).toFixed(1);
+  const vol = (Math.random()*400+10).toFixed(0);
+  const mcap = (Math.random()*900+20).toFixed(0);
+  const age = Math.floor(Math.random()*600);
+  const score = computeScore({hasMintRisk,hasFreezeRisk,hasLpRisk,smartBuying,sentimentSurge,isHighConc,liq:parseFloat(liq),vol:parseFloat(vol)});
+  const color = colors[Math.floor(Math.random()*colors.length)];
+  return {name,hasMintRisk,hasFreezeRisk,hasLpRisk,smartBuying,sentimentSurge,topConc,isHighConc,liq,vol,mcap,age,score,color,id:Date.now()+Math.random(),ts:new Date()};
+}
+
+function computeScore(t){
+  let s = 100;
+  if(t.hasMintRisk) s-=40;
+  if(t.hasFreezeRisk) s-=40;
+  if(t.hasLpRisk) s-=30;
+  if(t.isHighConc) s-=15;
+  if(t.liq<10) s-=10;
+  if(t.smartBuying) s+=15;
+  if(t.sentimentSurge) s+=10;
+  return Math.max(0,Math.min(100,s));
+}
+
+function ageStr(secs){
+  if(secs<60) return secs+'s';
+  if(secs<3600) return Math.floor(secs/60)+'m';
+  return Math.floor(secs/3600)+'h';
+}
+
+function scoreColor(s){
+  if(s>=75) return 'var(--green)';
+  if(s>=45) return 'var(--amber)';
+  return 'var(--red)';
+}
+
+function renderToken(t){
+  const passAll = !t.hasMintRisk && !t.hasFreezeRisk && !t.hasLpRisk;
+  const isBuyable = passAll && t.score >= 60;
+
+  // Apply filter logic
+  if(filters.mint && t.hasMintRisk) return null;
+  if(filters.freeze && t.hasFreezeRisk) return null;
+  if(filters.lp && t.hasLpRisk) return null;
+  if(filters.smart && !t.smartBuying && t.score < 70) return null;
+
+  const tags = [];
+  if(t.smartBuying) tags.push('<span class="tag smart">SMART$</span>');
+  if(t.sentimentSurge) tags.push('<span class="tag hot">🔥VIRAL</span>');
+  if(t.age < 120) tags.push('<span class="tag new">NEW</span>');
+
+  return `<div class="token-card flash" id="tc-${t.id}" onclick="drillToken('${t.id}')">
+    <div class="tc-header">
+      <div class="token-icon" style="background:${t.color}22;color:${t.color}">${t.name.slice(0,2)}</div>
+      <div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="token-name">${t.name}</span>
+          <span class="token-sym">$${t.name}</span>
+          ${tags.join('')}
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:1px">Raydium AMM • ${ageStr(t.age)} ago</div>
+      </div>
+      <div class="token-age" style="text-align:right">
+        <svg class="score-ring" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="14" fill="none" stroke="var(--bg3)" stroke-width="3"/>
+          <circle cx="18" cy="18" r="14" fill="none" stroke="${scoreColor(t.score)}" stroke-width="3"
+            stroke-dasharray="${(t.score/100)*87.96} 87.96"
+            stroke-dashoffset="21.99"
+            transform="rotate(-90 18 18)" stroke-linecap="round"/>
+          <text x="18" y="21" text-anchor="middle" font-size="9" font-family="JetBrains Mono" font-weight="600" fill="${scoreColor(t.score)}">${t.score}</text>
+        </svg>
+      </div>
+    </div>
+    <div class="score-bar">
+      <span class="check ${t.hasMintRisk?'fail':'pass'}">${t.hasMintRisk?'✗':'✓'} MINT</span>
+      <span class="check ${t.hasFreezeRisk?'fail':'pass'}">${t.hasFreezeRisk?'✗':'✓'} FREEZE</span>
+      <span class="check ${t.hasLpRisk?'fail':'pass'}">${t.hasLpRisk?'✗':'✓'} LP LOCK</span>
+      <span class="check ${t.isHighConc?'warn':'pass'}">${t.isHighConc?'⚠':'✓'} CONC ${t.topConc}%</span>
+    </div>
+    <div class="tc-stats">
+      <div class="stat"><div class="stat-label">LIQ</div><div class="stat-val ${parseFloat(t.liq)<10?'warn':''}">$${t.liq}K</div></div>
+      <div class="stat"><div class="stat-label">VOL 5M</div><div class="stat-val up">$${t.vol}K</div></div>
+      <div class="stat"><div class="stat-label">MCAP</div><div class="stat-val">$${t.mcap}K</div></div>
+      <div class="stat"><div class="stat-label">TOP10</div><div class="stat-val ${t.isHighConc?'warn':''}">${t.topConc}%</div></div>
+    </div>
+    <div class="signal-row">
+      <div class="signal"><span class="signal-icon ${t.smartBuying?'on':'off'}"></span>Smart wallets ${t.smartBuying?'BUYING':'idle'}</div>
+      <div class="signal" style="margin-left:10px"><span class="signal-icon ${t.sentimentSurge?'on':'off'}"></span>Sentiment ${t.sentimentSurge?'SURGE':'low'}</div>
+      ${isBuyable
+        ? `<button class="action-btn buy" onclick="event.stopPropagation();executeTrade('${t.id}','${t.name}')">SNIPE →</button>`
+        : `<button class="action-btn skip" onclick="event.stopPropagation()">FILTERED</button>`
+      }
+    </div>
+  </div>`;
+}
+
+function addToken(){
+  if(livePaused) return;
+  const t = randomToken();
+  tokens.unshift(t);
+  if(tokens.length > 30) tokens.pop();
+
+  const html = renderToken(t);
+  if(!html) return;
+
+  const feed = document.getElementById('feed-area');
+  if(feed.children.length > 20){
+    feed.removeChild(feed.lastChild);
+  }
+
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  const el = div.firstElementChild;
+  feed.insertBefore(el, feed.firstChild);
+
+  // Maybe add alert
+  if(t.hasMintRisk || t.hasFreezeRisk){
+    addAlert('rug','RUG DETECTED',`$${t.name} — ${t.hasMintRisk?'Mint authority active':'Freeze authority active'}`,t.ts);
+  } else if(t.smartBuying && t.score > 75){
+    addAlert('alpha','ALPHA SIGNAL',`$${t.name} score ${t.score} — Smart money entering`,t.ts);
+    addSentiment(t.name, true);
+  } else if(t.hasLpRisk){
+    addAlert('exit','LP UNLOCKED',`$${t.name} — LP not locked, rug risk HIGH`,t.ts);
+  }
+}
+
+// ---- Sentiment ----
+const sentTemplates = [
+  '{sym} just launched, massive potential 🚀',
+  'whales loading {sym} rn 👀',
+  '{sym} deployer wallet clean af',
+  '{sym} 10x confirmed by CT',
+  'dumping {sym} now, deployer sold',
+];
+
+function addSentiment(sym, bull){
+  const text = sentTemplates[Math.floor(Math.random()*sentTemplates.length)].replace(/{sym}/g,'$'+sym);
+  const vel = (Math.random()*800+50).toFixed(0);
+  sentiments.unshift({sym,bull,text,vel});
+  if(sentiments.length>8) sentiments.pop();
+  renderSentiments();
+}
+
+function renderSentiments(){
+  const el = document.getElementById('sent-list');
+  el.innerHTML = sentiments.map(s=>`
+    <div class="sent-item">
+      <span class="sent-ticker ${s.bull?'bull':'bear'}">$${s.sym}</span>
+      <span class="sent-text">${s.text}</span>
+      <span class="sent-vel ${s.bull?'up':'dn'}">${s.bull?'+':''}${s.vel}/hr</span>
+    </div>`).join('');
+  document.getElementById('sent-count').textContent = sentiments.length+' signals';
+}
+
+// ---- Alerts ----
+function addAlert(type, title, detail, ts){
+  alertCount++;
+  const icons = {rug:'☠',alpha:'⚡',whale:'🐋',exit:'⚠'};
+  alerts.unshift({type,title,detail,ts,icon:icons[type]||'●'});
+  if(alerts.length>20) alerts.pop();
+  renderAlerts();
+}
+
+function renderAlerts(){
+  document.getElementById('alert-count').textContent = alertCount;
+  const el = document.getElementById('alert-list');
+  el.innerHTML = alerts.slice(0,15).map(a=>`
+    <div class="alert-item new">
+      <div class="alert-icon ${a.type}">${a.icon}</div>
+      <div class="alert-body">
+        <div class="alert-title">${a.title}</div>
+        <div class="alert-detail">${a.detail}</div>
+      </div>
+      <div class="alert-time">${a.ts.toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div>
+    </div>`).join('');
+}
+
+// ---- Jito ----
+function setMyTip(v){
+  const val = (0.0001 + (v/100)*0.009).toFixed(4);
+  document.getElementById('my-tip-val').textContent = val+' SOL';
+  const landed = Math.min(99, 70 + Math.floor(v*0.29));
+  const reverts = 100-landed;
+  document.getElementById('landed-rate').textContent = landed+'%';
+  document.getElementById('revert-rate').textContent = reverts+'%';
+}
+
+function updateJitoMetrics(){
+  const p25 = (0.0002 + Math.random()*0.0003).toFixed(4);
+  const p75 = (0.0015 + Math.random()*0.0008).toFixed(4);
+  const p99 = (0.006 + Math.random()*0.003).toFixed(4);
+  document.getElementById('tip-p25').textContent = p25+' SOL';
+  document.getElementById('tip-p75').textContent = p75+' SOL';
+  document.getElementById('tip-p99').textContent = p99+' SOL';
+  bundleCount += Math.floor(Math.random()*3);
+  document.getElementById('bundle-count').textContent = bundleCount;
+}
+
+// ---- Latency ----
+function updateLatency(){
+  const shred = 8+Math.floor(Math.random()*12);
+  const yellow = 55+Math.floor(Math.random()*30);
+  const blox = 70+Math.floor(Math.random()*35);
+  const rpc = 220+Math.floor(Math.random()*120);
+  document.getElementById('lv-shred').textContent = shred+'ms';
+  document.getElementById('lv-yellow').textContent = yellow+'ms';
+  document.getElementById('lv-blox').textContent = blox+'ms';
+  document.getElementById('lv-rpc').textContent = rpc+'ms';
+  document.getElementById('lb-shred').style.width = (shred/400*100)+'%';
+  document.getElementById('lb-yellow').style.width = (yellow/400*100)+'%';
+  document.getElementById('lb-blox').style.width = (blox/400*100)+'%';
+  document.getElementById('lb-rpc').style.width = (rpc/400*100)+'%';
+}
+
+// ---- Topbar metrics ----
+let slot = 287441902;
+let pnl = 4281;
+function updateTopbar(){
+  slot += Math.floor(Math.random()*3)+1;
+  const tps = 4500+Math.floor(Math.random()*600);
+  const solPrice = (141+Math.random()*3).toFixed(2);
+  document.getElementById('slot-val').textContent = slot.toLocaleString();
+  document.getElementById('tps-val').textContent = tps.toLocaleString();
+  document.getElementById('sol-val').textContent = '$'+solPrice;
+}
+
+// ---- Filter ----
+function toggleFilter(k, btn){
+  filters[k] = !filters[k];
+  btn.classList.toggle('on', filters[k]);
+}
+
+function toggleLiveFeed(btn){
+  livePaused = !livePaused;
+  btn.textContent = livePaused ? '▶ RESUME' : '⏸ PAUSE';
+  btn.classList.toggle('on', livePaused);
+}
+
+// ---- Tab ----
+const tabContent = {
+  live: () => null,
+  smart: () => {
+    const feed = document.getElementById('feed-area');
+    feed.innerHTML = `<div style="padding:14px 16px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;font-family:var(--font-mono)">SMART MONEY COPY TRADES — LAST 24H</div>
+      ${wallets.slice(0,4).map(w=>`
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--text)">${w.addr}</div>
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--green);margin-left:auto">${w.pnl}</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${['BUY','BUY','SELL','BUY'].map((action,i)=>{
+              const tname = tokenNames[Math.floor(Math.random()*tokenNames.length)];
+              const color = action==='BUY'?'var(--green)':'var(--red)';
+              const bg = action==='BUY'?'var(--green-bg)':'var(--red-bg)';
+              return `<span style="font-family:var(--font-mono);font-size:10px;padding:2px 7px;border-radius:3px;background:${bg};color:${color}">${action} $${tname}</span>`;
+            }).join('')}
+          </div>
+        </div>`).join('')}
+    </div>`;
+  },
+  rugs: () => {
+    const feed = document.getElementById('feed-area');
+    feed.innerHTML = `<div style="padding:14px 16px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;font-family:var(--font-mono)">RUG DETECTOR — RECENTLY FLAGGED</div>
+      ${[...Array(5)].map((_,i)=>{
+        const nm = tokenNames[Math.floor(Math.random()*tokenNames.length)];
+        const risks = ['Mint authority ACTIVE','Freeze authority ACTIVE','LP unlocked','Top 10 wallets = 67%','Deployer rugged 3x before'];
+        const risk = risks[i%risks.length];
+        return `<div style="background:var(--red-bg);border:1px solid rgba(255,69,96,0.2);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">☠</span>
+          <div>
+            <div style="font-weight:600;color:var(--text);margin-bottom:3px">$${nm}</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--red)">${risk}</div>
+          </div>
+          <span style="margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--text3)">${Math.floor(Math.random()*20)+1}m ago</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  },
+  backtest: () => {
+    const feed = document.getElementById('feed-area');
+    feed.innerHTML = `<div style="padding:14px 16px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;font-family:var(--font-mono)">STRATEGY BACKTEST — LAST 30 DAYS</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        ${[['EXPECTANCY','+$18.4/trade','up'],['PROFIT FACTOR','2.31','up'],['MAX DRAWDOWN','-12.4%','dn'],['SHARPE RATIO','3.2','up'],['WIN RATE','73%','up'],['TOTAL TRADES','847','']].map(([l,v,c])=>`
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px">
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">${l}</div>
+            <div style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:${c==='up'?'var(--green)':c==='dn'?'var(--red)':'var(--text)'};margin-top:3px">${v}</div>
+          </div>`).join('')}
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;font-family:var(--font-mono);font-size:10px;color:var(--text2);line-height:1.8">
+        Strategy: FILTER_NULL_AUTH + LP_LOCK + SMART_MONEY_COPY<br>
+        Data: 30d Raydium launches via Helius archival RPC<br>
+        Slippage model: 0.3-2.1% (AMM curve simulation)<br>
+        Jito tip model: P75 EMA over 50ms auction windows<br>
+        <span style="color:var(--green)">▶ CLEARED FOR LIVE DEPLOYMENT</span>
+      </div>
+    </div>`;
+  }
+};
+
+function switchTab(name, btn){
+  currentTab = name;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  const feed = document.getElementById('feed-area');
+  if(name !== 'live'){
+    feed.innerHTML = '';
+    tabContent[name]();
+    livePaused = true;
+  } else {
+    livePaused = false;
+    feed.innerHTML = '';
+  }
+}
+
+function drillToken(id){
+  // Just highlight
+  const el = document.getElementById('tc-'+id);
+  if(el){el.style.background='rgba(59,130,246,0.07)';setTimeout(()=>{el.style.background=''},600);}
+}
+
+function executeTrade(id, sym){
+  pnl += Math.floor(Math.random()*200)-30;
+  const sign = pnl>=0?'+':'';
+  document.getElementById('pnl-val').textContent = sign+'$'+Math.abs(pnl).toLocaleString();
+  document.getElementById('pnl-val').style.color = pnl>=0?'var(--green)':'var(--red)';
+  addAlert('alpha','BUNDLE SENT',`$${sym} — Jito bundle submitted, awaiting land`,new Date());
+}
+
+// ---- Boot ----
+renderWallets();
+renderDeployerRep();
+updateLatency();
+
+// Seed initial tokens
+for(let i=0;i<6;i++) addToken();
+
+// Intervals
+setInterval(addToken, 2800 + Math.random()*2000);
+setInterval(updateJitoMetrics, 3000);
+setInterval(updateLatency, 2000);
+setInterval(updateTopbar, 1200);
+setInterval(()=>{
+  if(Math.random()<0.3){
+    const sym = tokenNames[Math.floor(Math.random()*tokenNames.length)];
+    addSentiment(sym, Math.random()>0.3);
+  }
+}, 4000);
+
+</script>
+</body>
+</html>

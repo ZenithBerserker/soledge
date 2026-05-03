@@ -1,0 +1,37 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "DATABASE_URL",
+    "NEXTAUTH_SECRET",
+    "NEXTAUTH_URL",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_PRO_PRICE_ID",
+    "STRIPE_ELITE_PRICE_ID",
+    "HELIUS_API_KEY",
+    "BIRDEYE_API_KEY",
+    "JITO_AUTH_TOKEN",
+    "DISCORD_BOT_TOKEN",
+    "TELEGRAM_BOT_TOKEN",
+    "LUNARCRUSH_API_KEY",
+    "ENGINE_BOT_TOKEN",
+    "WS_PORT",
+    "NEXT_PUBLIC_APP_URL",
+    "NEXT_PUBLIC_WS_URL",
+    "NODE_ENV"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "dist/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {},
+    "type-check": {
+      "dependsOn": ["^build"]
+    }
+  }
+}

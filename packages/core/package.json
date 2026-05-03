@@ -1,0 +1,21 @@
+{
+  "name": "@solana-mev-bot/core",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "postinstall": "npm run build"
+  },
+  "dependencies": {
+    "@meteora-ag/dlmm": "^1.9.7",
+    "@solana/web3.js": "^1.95.3",
+    "bn.js": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.5",
+    "typescript": "^5.4.0"
+  }
+}

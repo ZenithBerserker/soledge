@@ -1,0 +1,342 @@
+// packages/db/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth ───────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  walletAddress String?   @unique
+  role          Role      @default(FREE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  subscription  Subscription?
+  apiKeys       ApiKey[]
+  alerts        UserAlert[]
+  watchlist     WatchlistToken[]
+  trades        TradeRecord[]
+  sessions      Session[]
+  accounts      Account[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  FREE
+  PRO
+  ELITE
+  ADMIN
+}
+
+// ─── Subscriptions / Stripe ─────────────────────────────────────────────────
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  stripeCustomerId     String             @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  plan                 SubscriptionPlan   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  user                 User               @relation(fields: [userId], references: [id])
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO        // $49/mo — dashboard + alerts
+  ELITE      // $199/mo — everything + raw API
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+// ─── API Keys ───────────────────────────────────────────────────────────────
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  key       String   @unique
+  name      String
+  lastUsed  DateTime?
+  calls     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+// ─── Token Intelligence ──────────────────────────────────────────────────────
+
+model TokenLaunch {
+  id              String   @id @default(cuid())
+  mintAddress     String   @unique
+  name            String?
+  symbol          String?
+  decimals        Int      @default(6)
+  totalSupply     BigInt?
+  deployerWallet  String
+  launchSlot      BigInt
+  launchTime      DateTime
+  raydiumPool     String?
+  pumpfunBonding  String?
+
+  // Safety scores
+  mintAuthNull    Boolean  @default(false)
+  freezeAuthNull  Boolean  @default(false)
+  lpLocked        Boolean  @default(false)
+  lpLockDuration  Int?     // days
+  lpLockPlatform  String?
+  top10Pct        Float?
+  isBundled       Boolean  @default(false)
+  safetyScore     Int      @default(0)   // 0-100
+
+  // Market data
+  initialLiqUsd   Float?
+  peakMcapUsd     Float?
+  currentMcapUsd  Float?
+  volume5m        Float?
+  volume1h        Float?
+  priceChange5m   Float?
+  priceChange1h   Float?
+
+  // Flags
+  isRug           Boolean  @default(false)
+  isHoneypot      Boolean  @default(false)
+  ruggedAt        DateTime?
+  rugType         String?   // MINT_DUMP | LP_PULL | FREEZE
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  smartMoneyBuys  SmartMoneyActivity[]
+  sentimentLogs   SentimentLog[]
+  alerts          AlphaAlert[]
+  watchlistItems  WatchlistToken[]
+}
+
+// ─── Smart Money Wallets ──────────────────────────────────────────────────────
+
+model SmartWallet {
+  id              String   @id @default(cuid())
+  address         String   @unique
+  label           String?
+  category        WalletCategory @default(UNKNOWN)
+  totalPnlUsd     Float    @default(0)
+  winRate         Float    @default(0)
+  totalTrades     Int      @default(0)
+  avgHoldTime     Int?     // seconds
+  lastActive      DateTime?
+  trustScore      Int      @default(50)  // 0-100
+  isPublic        Boolean  @default(false) // show in free tier?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  activities      SmartMoneyActivity[]
+}
+
+enum WalletCategory {
+  INSIDER
+  ALPHA
+  WHALE
+  DEV_WALLET
+  BOT
+  UNKNOWN
+  FADE   // consistently wrong — useful to fade
+}
+
+model SmartMoneyActivity {
+  id            String      @id @default(cuid())
+  walletId      String
+  tokenId       String
+  action        TradeAction
+  amountSol     Float
+  amountTokens  BigInt?
+  priceUsd      Float?
+  slot          BigInt
+  txSignature   String      @unique
+  bundleId      String?
+  jitoTip       Float?
+  createdAt     DateTime    @default(now())
+
+  wallet        SmartWallet  @relation(fields: [walletId], references: [id])
+  token         TokenLaunch  @relation(fields: [tokenId], references: [id])
+}
+
+enum TradeAction {
+  BUY
+  SELL
+  ADD_LP
+  REMOVE_LP
+}
+
+// ─── Sentiment ────────────────────────────────────────────────────────────────
+
+model SentimentLog {
+  id          String   @id @default(cuid())
+  tokenId     String?
+  symbol      String
+  platform    String   // TWITTER | TELEGRAM | DISCORD
+  sentiment   Float    // -1 to +1
+  velocity    Int      // mentions/hr
+  rawText     String?  @db.Text
+  source      String?
+  createdAt   DateTime @default(now())
+
+  token       TokenLaunch? @relation(fields: [tokenId], references: [id])
+}
+
+// ─── Alpha Alerts ─────────────────────────────────────────────────────────────
+
+model AlphaAlert {
+  id          String      @id @default(cuid())
+  tokenId     String?
+  type        AlertType
+  tier        AlertTier   @default(FREE)
+  title       String
+  body        String      @db.Text
+  metadata    Json?
+  sentDiscord Boolean     @default(false)
+  sentTg      Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+
+  token       TokenLaunch? @relation(fields: [tokenId], references: [id])
+  userAlerts  UserAlert[]
+}
+
+enum AlertType {
+  ALPHA_SIGNAL
+  RUG_DETECTED
+  SMART_MONEY_BUY
+  COORDINATED_EXIT
+  VOLUME_ANOMALY
+  SENTIMENT_SURGE
+}
+
+enum AlertTier {
+  FREE    // public scam alerts
+  PRO     // alpha signals
+  ELITE   // raw on-chain data + early signals
+}
+
+model UserAlert {
+  id        String     @id @default(cuid())
+  userId    String
+  alertId   String
+  read      Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id])
+  alert     AlphaAlert @relation(fields: [alertId], references: [id])
+}
+
+// ─── Watchlist ────────────────────────────────────────────────────────────────
+
+model WatchlistToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenId   String
+  notes     String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  token     TokenLaunch @relation(fields: [tokenId], references: [id])
+  @@unique([userId, tokenId])
+}
+
+// ─── Trade Records ────────────────────────────────────────────────────────────
+
+model TradeRecord {
+  id            String      @id @default(cuid())
+  userId        String
+  mintAddress   String
+  symbol        String?
+  action        TradeAction
+  amountSol     Float
+  amountTokens  BigInt?
+  entryPriceUsd Float?
+  exitPriceUsd  Float?
+  pnlUsd        Float?
+  jitoTipSol    Float?
+  txSignature   String?
+  bundleId      String?
+  slotLanded    BigInt?
+  status        TradeStatus @default(PENDING)
+  createdAt     DateTime    @default(now())
+  settledAt     DateTime?
+  user          User        @relation(fields: [userId], references: [id])
+}
+
+enum TradeStatus {
+  PENDING
+  LANDED
+  REVERTED
+  FAILED
+}
+
+// ─── Deployer Reputation ──────────────────────────────────────────────────────
+
+model DeployerProfile {
+  id            String   @id @default(cuid())
+  address       String   @unique
+  totalLaunches Int      @default(0)
+  rugs          Int      @default(0)
+  successfulExits Int    @default(0)
+  avgLiqUsd     Float?
+  reputationScore Int    @default(50) // 0-100
+  tags          String[] // ["SERIAL_RUGGER","BUNDLER","LEGIT_DEV"]
+  firstSeen     DateTime @default(now())
+  lastSeen      DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ─── Jito Metrics ─────────────────────────────────────────────────────────────
+
+model JitoMetricSnapshot {
+  id        String   @id @default(cuid())
+  p25       Float
+  p50       Float
+  p75       Float
+  p95       Float
+  p99       Float
+  slot      BigInt
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+}

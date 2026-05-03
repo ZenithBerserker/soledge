@@ -1,0 +1,22 @@
+{
+  "name": "soledge",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "db:generate": "cd packages/db && npx prisma generate",
+    "db:migrate": "cd packages/db && npx prisma migrate deploy",
+    "db:push": "cd packages/db && npx prisma db push",
+    "db:studio": "cd packages/db && npx prisma studio",
+    "db:seed": "cd packages/db && npx ts-node prisma/seed.ts"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0",
+    "prettier": "^3.2.0"
+  }
+}

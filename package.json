@@ -1,0 +1,19 @@
+{
+  "name": "solana-mev-bot",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @solana-mev-bot/web",
+    "build": "npm run build -w @solana-mev-bot/core && npm run build -w @solana-mev-bot/web",
+    "worker": "npm run dev -w @solana-mev-bot/worker",
+    "db:migrate": "cd apps/web && npx prisma migrate deploy"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  }
+}
