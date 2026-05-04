@@ -12,7 +12,8 @@
     "build": "npm run build -w @solana-mev-bot/core && npm run build -w @solana-mev-bot/web",
     "worker": "npm run dev -w @solana-mev-bot/worker",
     "db:migrate": "cd apps/web && npx prisma migrate deploy",
-    "db:enrich-pools": "npm run db:enrich-pools -w @solana-mev-bot/web"
+    "db:enrich-pools": "npm run db:enrich-pools -w @solana-mev-bot/web",
+    "vercel:push-env": "node scripts/vercel-push-env.mjs"
   },
   "devDependencies": {
     "turbo": "^2.0.0",

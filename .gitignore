@@ -7,5 +7,6 @@ dist
 *.tsbuildinfo
 .DS_Store
 apps/web/.env
+apps/web/.env.vercel.secrets
 packages/core/dist
 apps/worker/dist

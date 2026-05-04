@@ -2,5 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && npm install",
   "buildCommand": "npm run build",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "env": {
+    "DISCOVERY_SCAN_ENABLED": "1",
+    "DISCOVERY_MIN_PROFIT_MULTIPLE": "1.05",
+    "DISCOVERY_AMOUNT_RAW": "25000",
+    "DISCOVERY_MAX_PAIRS_PER_SCAN": "12",
+    "DISCOVERY_ASSUMED_POOL_LIQ_USD": "35000",
+    "DISCOVERY_MIRROR_POOL_PAIRS": "false",
+    "DISCOVERY_TRIGGER_EXECUTION": "false"
+  }
 }
