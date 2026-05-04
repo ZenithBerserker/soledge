@@ -18,3 +18,5 @@ That archive is a **different monorepo**: `@soledge/db`, relational **`ArbOpport
 - `apps/web/src/app/dashboard/arb/ArbFeed.tsx` — client poll feed (needs Tailwind + `@soledge/db`).
 
 Unzip locally to read; avoid committing extracted trees.
+
+**Do not** add a public `/api/migrate` that runs DDL from the browser (anyone could hit it). Use `npx prisma migrate deploy` or `db push` from your machine with `DATABASE_URL` instead.

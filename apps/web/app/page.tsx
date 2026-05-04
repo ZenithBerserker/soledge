@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { EmptyStateActions } from './empty-state-actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,24 +85,10 @@ npx prisma migrate deploy`}
           <strong>Database connected — no opportunities yet</strong>
           <p style={{ margin: '0.5rem 0 0' }}>
             Run the worker with real <code className="mono">POOL_A</code> / <code className="mono">POOL_B</code> /{' '}
-            <code className="mono">START_MINT</code>, or POST a test payload (same secret as Vercel):
+            <code className="mono">START_MINT</code>, or POST a test payload (same secret as Vercel). Ignore advice
+            about an <code className="mono">ArbOpportunity</code> table — that is a different codebase.
           </p>
-          <pre
-            className="mono"
-            style={{
-              marginTop: '0.75rem',
-              padding: '0.75rem',
-              background: 'rgba(0,0,0,0.25)',
-              borderRadius: 8,
-              overflow: 'auto',
-              fontSize: '0.75rem',
-            }}
-          >
-            {`curl -sS -X POST "https://YOUR_PROJECT.vercel.app/api/opportunities" \\
-  -H "Content-Type: application/json" \\
-  -H "x-engine-secret: YOUR_ENGINE_INGEST_SECRET" \\
-  -d '{"id":"test-1","detectedAt":"${new Date().toISOString()}","pairs":["TEST/USDC"],"entryAmountLabel":"1 USDC","projectedReturnX":1.01,"routeSteps":[],"recommendedJitoTipSol":0.5,"confidence":0.1,"priority":"low"}'`}
-          </pre>
+          <EmptyStateActions />
         </div>
       )}
 
