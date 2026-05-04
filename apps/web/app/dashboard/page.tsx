@@ -10,6 +10,7 @@ import {
   routeStepLines,
 } from '@/lib/opportunity-display'
 import { listRecentOpportunities } from '@/lib/opportunities'
+import { SnipeButton } from './snipe-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,8 +23,9 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-lg font-semibold tracking-tight text-white md:text-xl">Live opportunities</h1>
           <p className="mt-1 max-w-xl text-sm text-zinc-500">
-            Same data as the simple feed — styled layout first. Wire Shredstream / Jito / snipe execution in later
-            milestones.
+            Jito floors load in the right rail. <strong className="text-zinc-400">Simulate snipe</strong> re-runs the
+            two-pool Meteora quote for rows that include pool pubkeys in <code className="text-zinc-600">routeSteps</code>{' '}
+            (curl-only tests often skip pools — use the worker for full shape).
           </p>
         </div>
         <div className="flex gap-2 text-sm">
@@ -84,14 +86,7 @@ export default async function DashboardPage() {
                       {String(o.projectedReturnX ?? '—')}
                       <span className="text-sm font-normal text-zinc-500">x</span>
                     </div>
-                    <button
-                      type="button"
-                      disabled
-                      className="mt-2 cursor-not-allowed rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-500"
-                      title="Execution not wired in this build"
-                    >
-                      Snipe →
-                    </button>
+                    <SnipeButton logId={row.id} />
                   </div>
                 </div>
               </li>

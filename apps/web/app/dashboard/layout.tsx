@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Activity, LayoutDashboard, Radio } from 'lucide-react'
+import { JitoTipPanel } from './jito-panel'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -48,11 +49,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex flex-1 min-h-0">
           <div className="min-w-0 flex-1 overflow-auto">{children}</div>
           <aside className="hidden w-64 shrink-0 border-l border-zinc-800/80 bg-zinc-900/20 p-4 text-xs text-zinc-500 xl:block">
+            <JitoTipPanel />
+            <hr className="my-4 border-zinc-800" />
             <p className="mb-2 font-medium text-zinc-400">Execution</p>
             <p>
-              Snipe / bundle buttons are <strong className="text-zinc-300">not wired</strong> here. Set{' '}
-              <code className="rounded bg-zinc-800 px-1">EXECUTION_MODE=simulate</code> on the worker to log dry-run
-              plans; live signing is a separate milestone.
+              <strong className="text-zinc-300">Simulate snipe</strong> re-quotes DLMM on the server (needs{' '}
+              <code className="rounded bg-zinc-800 px-1">HELIUS_API_KEY</code> + worker-style <code className="rounded bg-zinc-800 px-1">routeSteps</code>
+              ). No wallet / no bundle sent. Set <code className="rounded bg-zinc-800 px-1">EXECUTION_MODE=simulate</code>{' '}
+              on the worker for dry-run logs.
             </p>
           </aside>
         </div>

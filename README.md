@@ -31,7 +31,7 @@ npm run dev -w @solana-mev-bot/worker
 
 1. Create a Postgres database (**Neon**, **Supabase**, or Vercel Postgres) and set `DATABASE_URL` in the Vercel project. For **Supabase**, prefer the **Session pooler** URI for serverless (`:6543` + `pgbouncer=true`); use the **Direct** (`:5432`) URL when running `prisma migrate deploy` / `db push` from your laptop if the pooler complains.
 2. In the Vercel project, set **Root Directory** to `apps/web`, **Install command** to `cd ../.. && npm install`, **Build command** to `npx prisma generate && next build`.
-3. Add `ENGINE_INGEST_SECRET` (same value you give the worker).
+3. Add `ENGINE_INGEST_SECRET` (same value you give the worker) and **`HELIUS_API_KEY`** if you use **Simulate snipe** on `/dashboard` (server re-quote).
 4. **Create tables once** in the same database Vercel uses (copy `DATABASE_URL` from Vercel or Neon):
    ```bash
    cd apps/web

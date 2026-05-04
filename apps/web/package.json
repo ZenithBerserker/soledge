@@ -12,6 +12,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@solana-mev-bot/core": "file:../../packages/core",
     "@prisma/client": "^5.22.0",
     "lucide-react": "^1.14.0",
     "next": "^15.0.0",
