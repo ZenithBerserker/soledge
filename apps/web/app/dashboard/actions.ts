@@ -2,53 +2,12 @@
 
 import { PublicKey } from '@solana/web3.js'
 import { compareDlmmPairPools, createRpcConnection } from '@solana-mev-bot/core'
+import { extractTwoPoolFromPayload, startAmountRawFromPayload } from '@/lib/extract-two-pool'
 import { prisma } from '@/lib/prisma'
 
 export type SimulateResult =
   | { ok: true; message: string; projectedReturnX?: number; abortReason?: string }
   | { ok: false; error: string }
-
-type Pools = { poolA: string; poolB: string; startMint: string }
-
-/**
- * Accept either:
- * - Root fields `poolA`, `poolB`, `startMint` (base58) — good for manual/curl rows with string `routeSteps`
- * - Worker shape: `routeSteps` = [{ pool, inMint, outMint }, ...] (objects) on first two hops
- */
-function extractTwoPoolQuote(p: Record<string, unknown>): Pools | { error: string } {
-  if (
-    typeof p.poolA === 'string' &&
-    typeof p.poolB === 'string' &&
-    typeof p.startMint === 'string'
-  ) {
-    return { poolA: p.poolA, poolB: p.poolB, startMint: p.startMint }
-  }
-
-  const steps = p.routeSteps
-  if (Array.isArray(steps) && steps.length >= 2) {
-    const s0 = steps[0]
-    const s1 = steps[1]
-    if (
-      typeof s0 === 'object' &&
-      s0 !== null &&
-      typeof s1 === 'object' &&
-      s1 !== null &&
-      !Array.isArray(s0) &&
-      !Array.isArray(s1)
-    ) {
-      const a = s0 as Record<string, unknown>
-      const b = s1 as Record<string, unknown>
-      if (typeof a.pool === 'string' && typeof b.pool === 'string' && typeof a.inMint === 'string') {
-        return { poolA: a.pool, poolB: b.pool, startMint: a.inMint }
-      }
-    }
-  }
-
-  return {
-    error:
-      'Need Meteora LB pair addresses. Add to this row JSON: "poolA":"<base58>","poolB":"<base58>","startMint":"<base58>" (same as worker env POOL_A/POOL_B/START_MINT), OR ingest from the worker so routeSteps are objects with pool + inMint. Pretty labels like USDC→SOL are not enough to re-quote on-chain.',
-  }
-}
 
 /**
  * Re-run the two-pool DLMM quote for an ingested row (same logic as the worker).
@@ -68,19 +27,12 @@ export async function simulateSnipe(logId: string): Promise<SimulateResult> {
   }
 
   const p = row.payload as Record<string, unknown>
-  const extracted = extractTwoPoolQuote(p)
+  const extracted = extractTwoPoolFromPayload(p)
   if ('error' in extracted) {
     return { ok: false, error: extracted.error }
   }
   const { poolA, poolB, startMint } = extracted
-
-  const raw = p.startAmountRaw ?? p.amountRaw ?? p.entryAmountRaw
-  let startAmountIn: bigint
-  try {
-    startAmountIn = raw != null ? BigInt(String(raw)) : BigInt(1_000_000)
-  } catch {
-    startAmountIn = BigInt(1_000_000)
-  }
+  const startAmountIn = startAmountRawFromPayload(p)
 
   try {
     const connection = createRpcConnection()

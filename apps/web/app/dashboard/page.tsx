@@ -13,6 +13,7 @@ import {
 } from '@/lib/opportunity-display'
 import { listRecentOpportunities } from '@/lib/opportunities'
 import { SnipeButton } from './snipe-button'
+import { WalletArbButton } from './wallet-arb-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,8 +29,9 @@ export default async function DashboardPage() {
           <p className="mt-1 max-w-xl text-[12px] leading-relaxed text-[var(--sn-text3)]">
             Two-pool Meteora DLMM rows from the worker / ingest.{' '}
             <strong className="text-[var(--sn-text2)]">Simulate snipe</strong> re-quotes on the server;{' '}
-            <strong className="text-[var(--sn-text2)]">LIVE swaps</strong> fire from the worker only (
-            <span className="sniper-mono text-[11px] text-[var(--sn-cyan)]">EXECUTION_MODE=live</span>).
+            <strong className="text-[var(--sn-text2)]">Sign &amp; send (wallet)</strong> builds the same merged DLMM tx for Phantom;{' '}
+            <strong className="text-[var(--sn-text2)]">worker LIVE</strong> uses{' '}
+            <span className="sniper-mono text-[11px] text-[var(--sn-cyan)]">EXECUTION_MODE=live</span> + executor key.
             {deploySha ? (
               <>
                 {' '}
@@ -110,6 +112,7 @@ export default async function DashboardPage() {
                       <span className="text-sm font-normal text-[var(--sn-text3)]">x</span>
                     </div>
                     <SnipeButton logId={row.id} />
+                    <WalletArbButton logId={row.id} />
                   </div>
                 </div>
               </li>

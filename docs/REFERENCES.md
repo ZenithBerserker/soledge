@@ -7,6 +7,7 @@ Snapshot only — **we do not mirror these repos automatically.** Re-review upst
 | [machenxi/meteora-sniper-bot](https://github.com/machenxi/meteora-sniper-bot) | TypeScript, Meteora, Yellowstone gRPC, Jito bundles | Priority fees / CU limits, `simulateTransaction` before send, Jito with RPC fallback, tx assembly discipline |
 | [SaoXuan/rust-mev-bot-shared](https://github.com/SaoXuan/rust-mev-bot-shared) | Rust, Jupiter, Jito (commercial/binary distribution) | Multi-region engines, aggressive tipping mindset — **verify any binary vendor yourself** |
 | [hanshaze/solana-sniper-copy-trading-bot](https://github.com/hanshaze/solana-sniper-copy-trading-bot) | README / pointers | Thin README; treat linked “latest” repos skeptically |
+| [Cetipoo/solana-mev-bot](https://github.com/Cetipoo/solana-mev-bot) | Marketing shell → separate repos/docs | Multi-DEX on-chain program narrative; **not integrated** — our stack is app/worker + Meteora DLMM two-pool + optional wallet send |
 
 ## What we adopted here
 

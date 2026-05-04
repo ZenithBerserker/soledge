@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { JetBrains_Mono, Space_Grotesk } from 'next/font/google'
 import { JitoTipPanel } from './jito-panel'
+import { DashboardWalletProviders } from './wallet-providers'
+import { WalletHeaderCluster } from './wallet-header-cluster'
 import './sniper-theme.css'
 
 const fontSans = Space_Grotesk({
@@ -15,33 +17,35 @@ const fontMono = JetBrains_Mono({
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`${fontSans.variable} ${fontMono.variable} sniper-root`}>
-      <div className="sniper-terminal">
-        <header className="sniper-topbar">
-          <div className="sniper-logo">
-            SOL<span>EDGE</span>
-          </div>
-          <div className="sniper-status-pill live sniper-mono">
-            <span className="sniper-dot" />
-            DLMM SCAN
-          </div>
-          <div className="sniper-status-pill live sniper-mono">
-            <span className="sniper-dot" />
-            QUOTES
-          </div>
-          <div className="sniper-status-pill warn sniper-mono">
-            <span className="sniper-dot" />
-            WORKER OFF-VERCEL
-          </div>
-          <div className="sniper-topbar-right sniper-mono">
-            <div className="sniper-metric-chip">
-              EXEC <span className="text-[var(--sn-amber)]">WORKER ONLY</span>
+    <DashboardWalletProviders>
+      <div className={`${fontSans.variable} ${fontMono.variable} sniper-root`}>
+        <div className="sniper-terminal">
+          <header className="sniper-topbar">
+            <div className="sniper-logo">
+              SOL<span>EDGE</span>
             </div>
-            <div className="sniper-metric-chip">
-              UI <span>NEXT</span>
+            <div className="sniper-status-pill live sniper-mono">
+              <span className="sniper-dot" />
+              DLMM SCAN
             </div>
-          </div>
-        </header>
+            <div className="sniper-status-pill live sniper-mono">
+              <span className="sniper-dot" />
+              QUOTES
+            </div>
+            <div className="sniper-status-pill warn sniper-mono">
+              <span className="sniper-dot" />
+              WORKER OFF-VERCEL
+            </div>
+            <div className="sniper-topbar-right sniper-mono">
+              <div className="sniper-metric-chip">
+                EXEC <span className="text-[var(--sn-amber)]">WORKER · WALLET</span>
+              </div>
+              <div className="sniper-metric-chip">
+                UI <span>NEXT</span>
+              </div>
+              <WalletHeaderCluster />
+            </div>
+          </header>
 
         <div className="sniper-main">
           <aside className="sniper-sidebar">
@@ -92,13 +96,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <span className="sniper-mono text-[var(--sn-cyan)]">worker</span> when{' '}
                 <span className="sniper-mono">EXECUTION_MODE=live</span>, confirmation string +{' '}
                 <span className="sniper-mono">EXECUTOR_SECRET_KEY</span>. Use{' '}
-                <span className="sniper-mono">EXECUTION_SUBMIT=jito</span> for Block Engine bundles (arb + tip tx).
-                Keys never on Vercel; profit not guaranteed.
+                <span className="sniper-mono">EXECUTION_SUBMIT=jito</span> for worker bundles (arb + tip tx).
+                Or use <strong className="text-[var(--sn-text)]">Sign & send round-trip (wallet)</strong> on a feed row (
+                Phantom + <span className="sniper-mono">NEXT_PUBLIC_SOLANA_RPC_URL</span>). Keys stay in your wallet or on the worker host only.
               </div>
             </div>
           </aside>
         </div>
       </div>
     </div>
+    </DashboardWalletProviders>
   )
 }

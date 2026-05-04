@@ -125,6 +125,22 @@ export async function signAndSendTwoPoolRoundTrip(
  * Signs arb tx + SOL tip tx (tip last), submits bundle to Jito Block Engine. Returns bundle id (poll status separately).
  * Tip pays one of getTipAccounts — required for auction inclusion.
  */
+/**
+ * Build merged DLMM round-trip for a wallet fee payer; optionally skip the same profit gate the worker uses.
+ * Phantom/your wallet runs preflight simulation when you send; legacy unsigned RPC simulate is unreliable with web3.js typings.
+ */
+export async function prepareWalletTwoPoolRoundTrip(
+  connection: Connection,
+  params: ComparePoolsParams,
+  feePayer: PublicKey,
+  options: { skipProfitCheck?: boolean } = {}
+): Promise<BuiltTwoPoolRoundTrip> {
+  if (!options.skipProfitCheck) {
+    await assertStillProfitable(connection, params)
+  }
+  return buildTwoPoolRoundTripTransaction(connection, params, feePayer)
+}
+
 export async function sendTwoPoolRoundTripJitoBundle(
   connection: Connection,
   signer: Keypair,
