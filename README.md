@@ -54,7 +54,7 @@ HELIUS_API_KEY=... POOL_A=... POOL_B=... START_MINT=... DASHBOARD_URL=... ENGINE
 
 ## What is implemented vs. what you extend
 
-- **Implemented:** Two-pool, same-pair Meteora DLMM round-trip quote using `swapQuote` and bin arrays, output in the “live opportunity” shape, POST to your Vercel API, **`/dashboard`** with **Simulate snipe** (server re-quote), **Phantom wallet sign & send** for the merged round-trip (`NEXT_PUBLIC_SOLANA_RPC_URL`), plus worker **`EXECUTION_MODE=simulate|live`** (live signs with `EXECUTOR_SECRET_KEY`).
+- **Implemented:** Two-pool, same-pair Meteora DLMM round-trip quote using `swapQuote` and bin arrays, output in the “live opportunity” shape, POST to your Vercel API, **`/dashboard`** with **Simulate snipe** (server re-quote), **Phantom wallet sign & send** for the merged round-trip (`NEXT_PUBLIC_SOLANA_RPC_URL`), **chaos discovery** (dashboard scan + optional worker loop via `DISCOVERY_*`), plus worker **`EXECUTION_MODE=simulate|live`** (live signs with `EXECUTOR_SECRET_KEY`).
 - **You extend:** Full SOLEDGE-style panels (Shredstream, smart money, charts), multi-hop graph, cross-DEX, deeper gRPC subscriptions + landing, hardened **live execution** (explicit security/custody work — tune caps and infra).
 
 ### Both tracks (UI + execution)

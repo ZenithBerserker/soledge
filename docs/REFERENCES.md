@@ -24,3 +24,4 @@ Snapshot only — **we do not mirror these repos automatically.** Re-review upst
 
 - **Multi-pair polling**: worker reads `POOL_PAIRS_JSON` or `POOL_PAIRS_FILE` (see `apps/worker/config/pool-pairs.example.json`) and scans each pair every tick with optional `PAIR_STAGGER_MS`.
 - **Yellowstone gRPC scaffold** (`WORKER_MODE=stream|both`): `@triton-one/yellowstone-grpc` subscription on Meteora LB program txs; optional **`STREAM_BRIDGE_*`** cooldown bridge into `compareDlmmPairPools` + ingest (`scannerKind=grpc-bridge`). Pure stream without bridge does **not** require `HELIUS_API_KEY`.
+- **Chaos discovery**: dashboard scan (`DISCOVERY_SCAN_ENABLED` + pair JSON) and optional worker loop (`DISCOVERY_POLL_MS`) ingest DLMM rows with `scannerKind=discovery`, lower **`DISCOVERY_MIN_PROFIT_MULTIPLE`**, tiny **`DISCOVERY_AMOUNT_RAW`** — still **two-hop DLMM only** until multi-hop routing exists.

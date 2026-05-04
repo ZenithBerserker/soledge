@@ -12,6 +12,13 @@ import { recommendedTipSol } from '../jito'
 import type { ComparePoolsParams, ComparePoolsResult, LiveOpportunity, RouteStepMeteora } from '../types'
 import { quoteHop } from './quote'
 
+/** Optional overrides for chaos / discovery scans (thread-safe vs mutating env). */
+export interface CompareDlmmPairPoolsOpts {
+  minProfitMultiple?: number
+  /** Skews toward "highest" priority when pools are treated as thin / chaotic */
+  assumedPoolLiqUsd?: number
+}
+
 function labelMint(pk: PublicKey): string {
   const s = pk.toBase58()
   return `${s.slice(0, 4)}…${s.slice(-4)}`
@@ -23,10 +30,12 @@ function labelMint(pk: PublicKey): string {
  */
 export async function compareDlmmPairPools(
   connection: Connection,
-  params: ComparePoolsParams
+  params: ComparePoolsParams,
+  opts?: CompareDlmmPairPoolsOpts
 ): Promise<ComparePoolsResult> {
   const blocklist = loadBlacklistFromEnv()
-  const minMult = envNumber('MIN_PROFIT_MULTIPLE', DEFAULT_MIN_PROFIT_MULTIPLE)
+  const minMult =
+    opts?.minProfitMultiple ?? envNumber('MIN_PROFIT_MULTIPLE', DEFAULT_MIN_PROFIT_MULTIPLE)
 
   try {
     assertMintAllowed(params.startMint, blocklist)
@@ -85,7 +94,7 @@ export async function compareDlmmPairPools(
 
     const tipSol = await recommendedTipSol(multiple)
 
-    const roughLiqUsd = envNumber('ASSUMED_POOL_LIQ_USD', 50_000)
+    const roughLiqUsd = opts?.assumedPoolLiqUsd ?? envNumber('ASSUMED_POOL_LIQ_USD', 50_000)
     const priority =
       roughLiqUsd < PRIORITY_LIQ_USD_THRESHOLD
         ? ('highest' as const)

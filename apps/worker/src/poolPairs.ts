@@ -14,7 +14,7 @@ function asRecord(x: unknown): Record<string, unknown> {
   return x && typeof x === 'object' && !Array.isArray(x) ? (x as Record<string, unknown>) : {}
 }
 
-function parsePairEntry(raw: unknown, index: number): WorkerPoolPair {
+function parsePairEntry(raw: unknown, index: number, ctx: string): WorkerPoolPair {
   const o = asRecord(raw)
   const poolA = String(o.poolA ?? '').trim()
   const poolB = String(o.poolB ?? '').trim()
@@ -23,10 +23,18 @@ function parsePairEntry(raw: unknown, index: number): WorkerPoolPair {
   const amountRaw = o.amountRaw != null ? String(o.amountRaw).trim() : undefined
 
   if (!poolA || !poolB || !startMint) {
-    throw new Error(`POOL_PAIRS_JSON[${index}] needs poolA, poolB, startMint (non-empty strings)`)
+    throw new Error(`${ctx}[${index}] needs poolA, poolB, startMint (non-empty strings)`)
   }
 
   return { poolA, poolB, startMint, label, amountRaw }
+}
+
+/** Shared JSON-array parser for POOL_PAIRS_* and DISCOVERY_POOL_PAIRS_* */
+export function parsePoolPairRows(parsed: unknown, ctx: string): WorkerPoolPair[] {
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error(`${ctx} must be a non-empty JSON array`)
+  }
+  return parsed.map((row, i) => parsePairEntry(row, i, ctx))
 }
 
 /**
@@ -39,19 +47,13 @@ export function loadPoolPairs(): WorkerPoolPair[] {
       throw new Error(`POOL_PAIRS_FILE not found: ${file}`)
     }
     const parsed = JSON.parse(readFileSync(file, 'utf8')) as unknown
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      throw new Error('POOL_PAIRS_FILE must contain a non-empty JSON array')
-    }
-    return parsed.map((row, i) => parsePairEntry(row, i))
+    return parsePoolPairRows(parsed, 'POOL_PAIRS_FILE')
   }
 
   const json = process.env.POOL_PAIRS_JSON?.trim()
   if (json) {
     const parsed = JSON.parse(json) as unknown
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      throw new Error('POOL_PAIRS_JSON must be a non-empty JSON array')
-    }
-    return parsed.map((row, i) => parsePairEntry(row, i))
+    return parsePoolPairRows(parsed, 'POOL_PAIRS_JSON')
   }
 
   const poolA = process.env.POOL_A?.trim()

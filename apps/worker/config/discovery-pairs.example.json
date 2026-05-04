@@ -1,0 +1,9 @@
+[
+  {
+    "label": "CHAOS/USDC-sample",
+    "poolA": "REPLACE_POOL_A_ADDRESS",
+    "poolB": "REPLACE_POOL_B_ADDRESS",
+    "startMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "amountRaw": "25000"
+  }
+]

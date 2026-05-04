@@ -12,17 +12,24 @@ import {
   scannerLabelDisplay,
 } from '@/lib/opportunity-display'
 import { listRecentOpportunities } from '@/lib/opportunities'
+import { DiscoveryScanButton } from './discovery-scan-button'
+import { DiscoveryStrategies } from './discovery-strategies'
 import { SnipeButton } from './snipe-button'
 import { WalletArbButton } from './wallet-arb-button'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  const rows = await listRecentOpportunities(40)
+  const rows = await listRecentOpportunities(72)
   const deploySha = process.env.VERCEL_GIT_COMMIT_SHA?.trim().slice(0, 7)
 
   return (
     <div className="p-4 md:p-5">
+      <DiscoveryStrategies />
+      <div className="mb-6">
+        <DiscoveryScanButton />
+      </div>
+
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[15px] font-semibold tracking-tight text-[var(--sn-text)]">Live opportunities</h1>

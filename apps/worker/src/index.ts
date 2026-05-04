@@ -5,6 +5,7 @@
  * WORKER_MODE=stream — Yellowstone gRPC txs mentioning Meteora LB CLMM program + optional STREAM_BRIDGE_* compare hook.
  * WORKER_MODE=both — poll loop + background gRPC stream.
  */
+import { runDiscoveryForever } from './discoveryLoop'
 import { runPollForever } from './pollLoop'
 import { runYellowstoneForever } from './stream/meteoraDlmmGrpc'
 
@@ -38,6 +39,7 @@ function bridgeConfigured(): boolean {
 async function main(): Promise<void> {
   const mode = workerMode()
   console.log(`[worker] WORKER_MODE=${mode}`)
+  const discoveryMs = Math.max(0, Number(process.env.DISCOVERY_POLL_MS) || 0)
 
   if (!['poll', 'stream', 'both'].includes(mode)) {
     throw new Error(`WORKER_MODE must be poll | stream | both (got ${mode})`)
@@ -45,6 +47,11 @@ async function main(): Promise<void> {
 
   if (needsPoll()) {
     requireEnv('HELIUS_API_KEY', process.env.HELIUS_API_KEY)
+  }
+
+  if (discoveryMs > 0) {
+    requireEnv('HELIUS_API_KEY', process.env.HELIUS_API_KEY)
+    void runDiscoveryForever().catch((e) => console.error('[discovery] fatal background error', e))
   }
 
   if (needsGrpc()) {
