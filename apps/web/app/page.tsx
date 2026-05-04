@@ -1,10 +1,19 @@
 import { prisma } from '@/lib/prisma'
+import {
+  confidenceDisplay,
+  detectedDisplay,
+  jitoTipDisplay,
+  pairsTitle,
+  payloadRecord,
+  priorityBadge,
+  routeStepLines,
+} from '@/lib/opportunity-display'
 import { EmptyStateActions } from './empty-state-actions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Page() {
-  let rows: { id: string; payload: unknown }[] = []
+  let rows: { id: string; payload: unknown; createdAt: Date }[] = []
   let dbError: string | null = null
 
   try {
@@ -93,42 +102,45 @@ npx prisma migrate deploy`}
       )}
 
       {rows.map((row) => {
-        const o = row.payload as Record<string, unknown>
+        const o = payloadRecord(row.payload)
+        const steps = routeStepLines(o.routeSteps)
         return (
           <article key={row.id} className="card">
             <h2>
-              {((o.pairs as string[]) || []).join(' · ') || 'Opportunity'}{' '}
-              <span className="badge">{String(o.priority ?? '')}</span>
+              {pairsTitle(o)}{' '}
+              <span className="badge">{priorityBadge(o)}</span>
             </h2>
             <div className="row">
               <div>
                 <div className="k">Return (x)</div>
-                <div>{String(o.projectedReturnX)}</div>
+                <div>{String(o.projectedReturnX ?? o.projected_return_x ?? '—')}</div>
               </div>
               <div>
                 <div className="k">Jito tip (SOL)</div>
-                <div>{String(o.recommendedJitoTipSol)}</div>
+                <div>{jitoTipDisplay(o)}</div>
               </div>
               <div>
                 <div className="k">Confidence</div>
-                <div>{String(o.confidence)}</div>
+                <div>{confidenceDisplay(o)}</div>
               </div>
               <div>
                 <div className="k">Entry</div>
-                <div className="mono">{String(o.entryAmountLabel)}</div>
+                <div className="mono">
+                  {String(o.entryAmountLabel ?? o.entry_amount_label ?? o.entryAmountSol ?? '—')}
+                </div>
               </div>
               <div>
                 <div className="k">Detected</div>
-                <div className="mono">{String(o.detectedAt)}</div>
+                <div className="mono">{detectedDisplay(o, row.createdAt)}</div>
               </div>
             </div>
-            {Array.isArray(o.routeSteps) && o.routeSteps.length > 0 && (
+            {steps.length > 0 && (
               <div style={{ marginTop: '1rem' }}>
                 <div className="k">Route</div>
                 <ol style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem' }}>
-                  {(o.routeSteps as Record<string, unknown>[]).map((s, i) => (
+                  {steps.map((line, i) => (
                     <li key={i} className="mono">
-                      {String(s.kind)} pool {String(s.pool)?.slice(0, 8)}…
+                      {line}
                     </li>
                   ))}
                 </ol>
