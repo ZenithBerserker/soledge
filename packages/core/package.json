@@ -12,7 +12,8 @@
   "dependencies": {
     "@meteora-ag/dlmm": "^1.9.7",
     "@solana/web3.js": "^1.95.3",
-    "bn.js": "^5.2.1"
+    "bn.js": "^5.2.1",
+    "bs58": "^6.0.0"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.5",

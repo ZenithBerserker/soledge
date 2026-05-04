@@ -89,9 +89,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="sniper-rp-body">
                 <strong className="text-[var(--sn-text)]">LIVE swaps</strong> run on the{' '}
                 <span className="sniper-mono text-[var(--sn-cyan)]">worker</span> when{' '}
-                <span className="sniper-mono">EXECUTION_MODE=live</span> and you set the confirmation string +{' '}
-                <span className="sniper-mono">EXECUTOR_SECRET_KEY</span>. Never put the key on Vercel. Bundles/Jito not
-                wired here — RPC send only; profit is not guaranteed.
+                <span className="sniper-mono">EXECUTION_MODE=live</span>, confirmation string +{' '}
+                <span className="sniper-mono">EXECUTOR_SECRET_KEY</span>. Use{' '}
+                <span className="sniper-mono">EXECUTION_SUBMIT=jito</span> for Block Engine bundles (arb + tip tx).
+                Keys never on Vercel; profit not guaranteed.
               </div>
             </div>
           </aside>

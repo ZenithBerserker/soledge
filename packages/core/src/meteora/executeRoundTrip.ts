@@ -1,10 +1,24 @@
 import DLMM from '@meteora-ag/dlmm'
 import BN from 'bn.js'
 import type { Connection, Keypair } from '@solana/web3.js'
-import { PublicKey, Transaction, sendAndConfirmTransaction } from '@solana/web3.js'
+import { PublicKey, Transaction } from '@solana/web3.js'
 import type { ComparePoolsParams } from '../types'
+import {
+  DEFAULT_JITO_BUNDLE_ENDPOINT,
+  buildSolTipTransaction,
+  encodeSignedTxBase58,
+  fetchJitoTipAccounts,
+  pickRandomTipAccount,
+  sendJitoBundle,
+} from '../jitoBundle'
 import { compareDlmmPairPools } from './divergence'
 import { buildDlmmSwapTransaction, quoteHop } from './quote'
+
+export interface BuiltTwoPoolRoundTrip {
+  transaction: Transaction
+  blockhash: string
+  lastValidBlockHeight: number
+}
 
 function assertSameTwoMints(pa: DLMM, pb: DLMM): void {
   const mintSet = new Set([
@@ -19,14 +33,13 @@ function assertSameTwoMints(pa: DLMM, pb: DLMM): void {
 }
 
 /**
- * Builds one legacy transaction containing swap ix for pool A then pool B (atomicity vs RPC broadcast only —
- * still loses to faster bots; does not submit Jito bundles).
+ * Builds one legacy transaction containing swap ix for pool A then pool B (same blockhash).
  */
 export async function buildTwoPoolRoundTripTransaction(
   connection: Connection,
   params: ComparePoolsParams,
   feePayer: PublicKey
-): Promise<Transaction> {
+): Promise<BuiltTwoPoolRoundTrip> {
   const [pa, pb] = await DLMM.createMultiple(connection, [params.poolA, params.poolB])
   await pa.refetchStates()
   await pb.refetchStates()
@@ -54,8 +67,7 @@ export async function buildTwoPoolRoundTripTransaction(
   for (const ix of tx1.instructions) merged.add(ix)
   for (const ix of tx2.instructions) merged.add(ix)
 
-  void lastValidBlockHeight
-  return merged
+  return { transaction: merged, blockhash, lastValidBlockHeight }
 }
 
 /** Re-quote with threshold from env; throw if below MIN_PROFIT_MULTIPLE or abort. */
@@ -69,8 +81,27 @@ export async function assertStillProfitable(
   }
 }
 
+async function sendSignedRpc(
+  connection: Connection,
+  signed: Transaction,
+  blockhash: string,
+  lastValidBlockHeight: number
+): Promise<string> {
+  const sig = await connection.sendRawTransaction(signed.serialize(), {
+    skipPreflight: false,
+    maxRetries: 5,
+  })
+
+  await connection.confirmTransaction(
+    { signature: sig, blockhash, lastValidBlockHeight },
+    'confirmed'
+  )
+
+  return sig
+}
+
 /**
- * Signs and submits merged round-trip swap tx. Can revert on-chain; can lose funds to fees and adverse execution.
+ * Signs and submits merged round-trip via normal RPC (no Jito).
  */
 export async function signAndSendTwoPoolRoundTrip(
   connection: Connection,
@@ -79,13 +110,38 @@ export async function signAndSendTwoPoolRoundTrip(
 ): Promise<string> {
   await assertStillProfitable(connection, params)
 
-  const tx = await buildTwoPoolRoundTripTransaction(connection, params, signer.publicKey)
+  const built = await buildTwoPoolRoundTripTransaction(connection, params, signer.publicKey)
+  built.transaction.sign(signer)
 
-  const sig = await sendAndConfirmTransaction(connection, tx, [signer], {
-    commitment: 'confirmed',
-    skipPreflight: false,
-    maxRetries: 5,
+  return sendSignedRpc(connection, built.transaction, built.blockhash, built.lastValidBlockHeight)
+}
+
+/**
+ * Signs arb tx + SOL tip tx (tip last), submits bundle to Jito Block Engine. Returns bundle id (poll status separately).
+ * Tip pays one of getTipAccounts — required for auction inclusion.
+ */
+export async function sendTwoPoolRoundTripJitoBundle(
+  connection: Connection,
+  signer: Keypair,
+  params: ComparePoolsParams,
+  tipLamports: number,
+  bundleEndpoint = process.env.JITO_BLOCK_ENGINE_URL?.trim() || DEFAULT_JITO_BUNDLE_ENDPOINT
+): Promise<string> {
+  await assertStillProfitable(connection, params)
+
+  const built = await buildTwoPoolRoundTripTransaction(connection, params, signer.publicKey)
+  built.transaction.sign(signer)
+
+  const tipDest = pickRandomTipAccount(await fetchJitoTipAccounts(bundleEndpoint))
+  const tipTx = buildSolTipTransaction({
+    from: signer.publicKey,
+    to: tipDest,
+    lamports: tipLamports,
+    recentBlockhash: built.blockhash,
   })
+  tipTx.sign(signer)
 
-  return sig
+  const payload = [encodeSignedTxBase58(built.transaction), encodeSignedTxBase58(tipTx)]
+
+  return sendJitoBundle(bundleEndpoint, payload)
 }

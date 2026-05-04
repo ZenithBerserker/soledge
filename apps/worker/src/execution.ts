@@ -1,5 +1,10 @@
-import { Keypair, PublicKey } from '@solana/web3.js'
-import { createRpcConnection, signAndSendTwoPoolRoundTrip, type LiveOpportunity } from '@solana-mev-bot/core'
+import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
+import {
+  createRpcConnection,
+  sendTwoPoolRoundTripJitoBundle,
+  signAndSendTwoPoolRoundTrip,
+  type LiveOpportunity,
+} from '@solana-mev-bot/core'
 
 const LIVE_CONFIRM = 'I_UNDERSTAND_REAL_SOLANA_FUNDS_AND_SLIPPAGE'
 
@@ -39,28 +44,43 @@ async function executeLiveTwoPool(opp: LiveOpportunity): Promise<void> {
 
   const connection = createRpcConnection()
 
-  console.log('[execution] LIVE sending merged Meteora DLMM round-trip (no Jito bundle)…')
-
-  const sig = await signAndSendTwoPoolRoundTrip(connection, kp, {
+  const params = {
     poolA: new PublicKey(poolA),
     poolB: new PublicKey(poolB),
     startMint: new PublicKey(startMint),
     startAmountIn: BigInt(startAmountRaw),
-  })
+  }
 
+  const submit = (process.env.EXECUTION_SUBMIT ?? 'rpc').toLowerCase()
+
+  const minTip = Number(process.env.JITO_MIN_TIP_LAMPORTS ?? 1_000_000)
+  const fromOpp = Math.floor((opp.recommendedJitoTipSol ?? 0) * LAMPORTS_PER_SOL)
+  const tipLamports = Math.max(minTip, Number.isFinite(fromOpp) ? fromOpp : 0)
+
+  if (submit === 'jito') {
+    console.log('[execution] LIVE Jito bundle (arb tx + tip tx), tip lamports:', tipLamports)
+    const bundleId = await sendTwoPoolRoundTripJitoBundle(connection, kp, params, tipLamports)
+    console.log('[execution] Jito bundle id:', bundleId)
+    return
+  }
+
+  console.log('[execution] LIVE RPC send merged Meteora DLMM round-trip…')
+  const sig = await signAndSendTwoPoolRoundTrip(connection, kp, params)
   console.log('[execution] LIVE landed signature:', sig)
 }
 
 /**
  * Worker-side execution only (never put EXECUTOR_SECRET_KEY on Vercel).
- * LIVE merges two DLMM swaps into one legacy transaction and submits via RPC — competitive arbs usually need Jito + lower latency.
+ * Use EXECUTION_SUBMIT=jito for Block Engine bundles (arb + SOL tip); default rpc sends one merged tx via RPC.
  */
 export function maybeLogExecutionPlan(opp: LiveOpportunity): void {
   const mode = (process.env.EXECUTION_MODE ?? 'off').toLowerCase()
   if (mode === 'off') return
 
+  const submit = (process.env.EXECUTION_SUBMIT ?? 'rpc').toLowerCase()
+
   if (mode === 'simulate') {
-    console.log('[execution] SIMULATE — would build merged DLMM swap tx (2 legs), suggested tip SOL:', opp.recommendedJitoTipSol)
+    console.log('[execution] SIMULATE submit=', submit, '— merged DLMM swap legs; tip SOL:', opp.recommendedJitoTipSol)
     console.log('[execution] pairs:', opp.pairs?.join(' · '), '· return x', opp.projectedReturnX)
     return
   }
