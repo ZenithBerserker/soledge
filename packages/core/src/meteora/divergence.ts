@@ -94,6 +94,10 @@ export async function compareDlmmPairPools(
     const opp: LiveOpportunity = {
       id: randomUUID(),
       detectedAt: new Date().toISOString(),
+      poolA: params.poolA.toBase58(),
+      poolB: params.poolB.toBase58(),
+      startMint: params.startMint.toBase58(),
+      startAmountRaw: params.startAmountIn.toString(),
       pairs: [pairLabel],
       entryAmountLabel: `${params.startAmountIn.toString()} raw units start mint`,
       projectedReturnX: multiple,

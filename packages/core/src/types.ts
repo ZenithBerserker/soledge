@@ -19,6 +19,11 @@ export interface RouteStepMeteora {
 export interface LiveOpportunity {
   id: string
   detectedAt: string
+  /** DLMM pair addresses + start mint (for dashboard re-quote without parsing routeSteps) */
+  poolA?: string
+  poolB?: string
+  startMint?: string
+  startAmountRaw?: string
   /** Human-readable pair labels (e.g. ANB/USDC) */
   pairs: string[]
   /** Best-effort: smaller clip sizes used for the quote */

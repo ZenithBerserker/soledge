@@ -53,10 +53,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <hr className="my-4 border-zinc-800" />
             <p className="mb-2 font-medium text-zinc-400">Execution</p>
             <p>
-              <strong className="text-zinc-300">Simulate snipe</strong> re-quotes DLMM on the server (needs{' '}
-              <code className="rounded bg-zinc-800 px-1">HELIUS_API_KEY</code> + worker-style <code className="rounded bg-zinc-800 px-1">routeSteps</code>
-              ). No wallet / no bundle sent. Set <code className="rounded bg-zinc-800 px-1">EXECUTION_MODE=simulate</code>{' '}
-              on the worker for dry-run logs.
+              <strong className="text-zinc-300">Simulate snipe</strong> needs{' '}
+              <code className="rounded bg-zinc-800 px-1">HELIUS_API_KEY</code> plus either{' '}
+              <code className="rounded bg-zinc-800 px-1">poolA</code>/<code className="rounded bg-zinc-800 px-1">poolB</code>/
+              <code className="rounded bg-zinc-800 px-1">startMint</code> on the row JSON, or worker-style{' '}
+              <code className="rounded bg-zinc-800 px-1">routeSteps</code> objects (with <code className="rounded bg-zinc-800 px-1">pool</code>). String-only routes cannot re-quote. No wallet / no bundle.
             </p>
           </aside>
         </div>

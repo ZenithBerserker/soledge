@@ -8,9 +8,50 @@ export type SimulateResult =
   | { ok: true; message: string; projectedReturnX?: number; abortReason?: string }
   | { ok: false; error: string }
 
+type Pools = { poolA: string; poolB: string; startMint: string }
+
+/**
+ * Accept either:
+ * - Root fields `poolA`, `poolB`, `startMint` (base58) — good for manual/curl rows with string `routeSteps`
+ * - Worker shape: `routeSteps` = [{ pool, inMint, outMint }, ...] (objects) on first two hops
+ */
+function extractTwoPoolQuote(p: Record<string, unknown>): Pools | { error: string } {
+  if (
+    typeof p.poolA === 'string' &&
+    typeof p.poolB === 'string' &&
+    typeof p.startMint === 'string'
+  ) {
+    return { poolA: p.poolA, poolB: p.poolB, startMint: p.startMint }
+  }
+
+  const steps = p.routeSteps
+  if (Array.isArray(steps) && steps.length >= 2) {
+    const s0 = steps[0]
+    const s1 = steps[1]
+    if (
+      typeof s0 === 'object' &&
+      s0 !== null &&
+      typeof s1 === 'object' &&
+      s1 !== null &&
+      !Array.isArray(s0) &&
+      !Array.isArray(s1)
+    ) {
+      const a = s0 as Record<string, unknown>
+      const b = s1 as Record<string, unknown>
+      if (typeof a.pool === 'string' && typeof b.pool === 'string' && typeof a.inMint === 'string') {
+        return { poolA: a.pool, poolB: b.pool, startMint: a.inMint }
+      }
+    }
+  }
+
+  return {
+    error:
+      'Need Meteora LB pair addresses. Add to this row JSON: "poolA":"<base58>","poolB":"<base58>","startMint":"<base58>" (same as worker env POOL_A/POOL_B/START_MINT), OR ingest from the worker so routeSteps are objects with pool + inMint. Pretty labels like USDC→SOL are not enough to re-quote on-chain.',
+  }
+}
+
 /**
  * Re-run the two-pool DLMM quote for an ingested row (same logic as the worker).
- * Needs `HELIUS_API_KEY` on the server and a payload with two `routeSteps` that include `pool` + `inMint` on hop 0.
  */
 export async function simulateSnipe(logId: string): Promise<SimulateResult> {
   if (!logId || logId.length < 8) {
@@ -27,23 +68,11 @@ export async function simulateSnipe(logId: string): Promise<SimulateResult> {
   }
 
   const p = row.payload as Record<string, unknown>
-  const steps = p.routeSteps
-  if (!Array.isArray(steps) || steps.length < 2) {
-    return {
-      ok: false,
-      error: 'Need ≥2 routeSteps with Meteora pools (worker-generated rows). Curl test rows may lack pools.',
-    }
+  const extracted = extractTwoPoolQuote(p)
+  if ('error' in extracted) {
+    return { ok: false, error: extracted.error }
   }
-
-  const s0 = steps[0] as Record<string, unknown>
-  const s1 = steps[1] as Record<string, unknown>
-  const poolA = s0.pool
-  const poolB = s1.pool
-  const startMint = s0.inMint
-
-  if (typeof poolA !== 'string' || typeof poolB !== 'string' || typeof startMint !== 'string') {
-    return { ok: false, error: 'routeSteps[0/1] must include pool (string) and hop0 inMint' }
-  }
+  const { poolA, poolB, startMint } = extracted
 
   const raw = p.startAmountRaw ?? p.amountRaw ?? p.entryAmountRaw
   let startAmountIn: bigint
