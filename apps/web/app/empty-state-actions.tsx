@@ -24,13 +24,25 @@ function makeSampleBody() {
   }
 }
 
-export function EmptyStateActions() {
+async function fetchHealthJson(): Promise<Health> {
+  const r = await fetch('/api/health')
+  const text = await r.text()
+  try {
+    return JSON.parse(text) as Health
+  } catch {
+    return {
+      ok: false,
+      error: `Expected JSON from /api/health, got ${r.status}: ${text.slice(0, 200)}`,
+    }
+  }
+}
+
+export default function EmptyStateActions() {
   const [health, setHealth] = useState<Health | null>(null)
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'err'>('idle')
 
   useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json())
+    void fetchHealthJson()
       .then(setHealth)
       .catch(() => setHealth({ ok: false, error: 'Failed to fetch /api/health' }))
   }, [])

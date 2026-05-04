@@ -8,7 +8,7 @@ import {
   priorityBadge,
   routeStepLines,
 } from '@/lib/opportunity-display'
-import { EmptyStateActions } from './empty-state-actions'
+import EmptyStateActions from './empty-state-actions'
 
 export const dynamic = 'force-dynamic'
 
