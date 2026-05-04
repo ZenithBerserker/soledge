@@ -29,7 +29,7 @@ npm run dev -w @solana-mev-bot/worker
 
 ## Deploy dashboard on Vercel
 
-1. Create a Postgres database (Neon, Supabase, or Vercel Postgres) and set `DATABASE_URL` in the Vercel project.
+1. Create a Postgres database (**Neon**, **Supabase**, or Vercel Postgres) and set `DATABASE_URL` in the Vercel project. For **Supabase**, prefer the **Session pooler** URI for serverless (`:6543` + `pgbouncer=true`); use the **Direct** (`:5432`) URL when running `prisma migrate deploy` / `db push` from your laptop if the pooler complains.
 2. In the Vercel project, set **Root Directory** to `apps/web`, **Install command** to `cd ../.. && npm install`, **Build command** to `npx prisma generate && next build`.
 3. Add `ENGINE_INGEST_SECRET` (same value you give the worker).
 4. **Create tables once** in the same database Vercel uses (copy `DATABASE_URL` from Vercel or Neon):
@@ -59,6 +59,7 @@ HELIUS_API_KEY=... POOL_A=... POOL_B=... START_MINT=... DASHBOARD_URL=... ENGINE
 
 On-chain markets are adversarial. Extreme quoted multiples are often **stale-bin artifacts** or **non-executable** once fees, account rent, and competing bots are included. This code is for **research and integration scaffolding**; it is not financial advice. Running automated execution carries legal and financial risk in your jurisdiction.
 
-## Legacy Claude snippets
+## Legacy / imports
 
-Earlier experiments live in `_legacy/` for reference only.
+- Earlier experiments live in `_legacy/` for reference only.
+- A Claude-export **`soledge-repo.zip`** was reviewed: ingest now also accepts **`Authorization: Bearer`** (see `env.example` / `ENGINE_BOT_TOKEN`). The full Tailwind dashboard + `@soledge/db` schema from that zip was **not** merged (different stack); the zip is kept under `_legacy/` if you want to cherry-pick UI later.

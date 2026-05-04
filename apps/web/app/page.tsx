@@ -26,9 +26,11 @@ export default async function Page() {
     <main>
       <h1>Meteora DLMM scanner feed</h1>
       <p className="sub">
-        The worker POSTs hits to <code className="mono">/api/opportunities</code>. In Vercel set{' '}
-        <code className="mono">DATABASE_URL</code> and <code className="mono">ENGINE_INGEST_SECRET</code>. Check{' '}
-        <a href="/api/health">/api/health</a> for a quick DB ping.
+        Monitors Meteora-style DLMM routes for large quoted edges (worker-side); small clips, slippage caps, and sim
+        before live execution still apply. The worker POSTs JSON to <code className="mono">/api/opportunities</code>{' '}
+        (<code className="mono">x-engine-secret</code> or <code className="mono">Authorization: Bearer …</code>). In
+        Vercel set <code className="mono">DATABASE_URL</code> (Neon or Supabase Postgres) and{' '}
+        <code className="mono">ENGINE_INGEST_SECRET</code>. Check <a href="/api/health">/api/health</a>.
       </p>
 
       {dbError && (

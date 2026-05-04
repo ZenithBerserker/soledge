@@ -19,9 +19,27 @@ export async function GET() {
   }
 }
 
+function ingestAuthorized(req: Request): boolean {
+  const ingest = process.env.ENGINE_INGEST_SECRET
+  const bot = process.env.ENGINE_BOT_TOKEN
+  if (req.headers.get('x-engine-secret') === ingest && ingest) return true
+  const auth = req.headers.get('authorization')
+  if (auth?.startsWith('Bearer ')) {
+    const token = auth.slice(7)
+    if (ingest && token === ingest) return true
+    if (bot && token === bot) return true
+  }
+  return false
+}
+
 export async function POST(req: Request) {
-  const secret = process.env.ENGINE_INGEST_SECRET
-  if (!secret || req.headers.get('x-engine-secret') !== secret) {
+  if (!process.env.ENGINE_INGEST_SECRET && !process.env.ENGINE_BOT_TOKEN) {
+    return NextResponse.json(
+      { error: 'Server misconfigured: set ENGINE_INGEST_SECRET or ENGINE_BOT_TOKEN' },
+      { status: 500 }
+    )
+  }
+  if (!ingestAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
