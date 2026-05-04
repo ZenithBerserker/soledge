@@ -1,116 +1,73 @@
 /**
- * Long-running process: NOT for Vercel. Run near your RPC.
- * Configure one pair via POOL_A/POOL_B/START_MINT or many via POOL_PAIRS_JSON / POOL_PAIRS_FILE.
+ * Worker entry — NOT for Vercel.
+ *
+ * WORKER_MODE=poll (default) — periodic DLMM two-pool scan (POOL_PAIRS_*).
+ * WORKER_MODE=stream — Yellowstone gRPC txs mentioning Meteora LB CLMM program + optional STREAM_BRIDGE_* compare hook.
+ * WORKER_MODE=both — poll loop + background gRPC stream.
  */
-import type { Connection } from '@solana/web3.js'
-import { PublicKey } from '@solana/web3.js'
-import {
-  compareDlmmPairPools,
-  createRpcConnection,
-  type LiveOpportunity,
-} from '@solana-mev-bot/core'
-import { maybeLogExecutionPlan } from './execution'
-import { loadPoolPairs, type WorkerPoolPair } from './poolPairs'
-
-const AMOUNT_RAW = process.env.AMOUNT_RAW ?? '1000000'
-const POLL_MS = Math.max(3_000, Number(process.env.POLL_MS) || 15_000)
-/** Delay between scanning each pair inside one tick (reduces RPC bursts). */
-const PAIR_STAGGER_MS = Math.max(0, Number(process.env.PAIR_STAGGER_MS) || 250)
-const DASHBOARD_URL = process.env.DASHBOARD_URL
-const INGEST_SECRET = process.env.ENGINE_INGEST_SECRET
+import { runPollForever } from './pollLoop'
+import { runYellowstoneForever } from './stream/meteoraDlmmGrpc'
 
 function requireEnv(name: string, v: string | undefined): string {
-  if (!v) throw new Error(`Missing env ${name}`)
-  return v
+  if (!v?.trim()) throw new Error(`Missing env ${name}`)
+  return v.trim()
 }
 
-async function postOpportunity(body: object) {
-  if (!DASHBOARD_URL || !INGEST_SECRET) {
-    console.log('[worker] DASHBOARD_URL or ENGINE_INGEST_SECRET unset — logging only:')
-    console.log(JSON.stringify(body, null, 2))
-    return
-  }
-  const url = new URL('/api/opportunities', DASHBOARD_URL).toString()
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-engine-secret': INGEST_SECRET,
-    },
-    body: JSON.stringify(body),
-  })
-  if (!r.ok) {
-    console.error('[worker] ingest failed', r.status, await r.text())
-  } else {
-    console.log('[worker] ingested opportunity')
-  }
+function workerMode(): string {
+  return (process.env.WORKER_MODE ?? 'poll').trim().toLowerCase()
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms))
+function needsPoll(): boolean {
+  const m = workerMode()
+  return m === 'poll' || m === 'both'
 }
 
-async function scanPair(connection: Connection, pair: WorkerPoolPair) {
-  const label = pair.label ?? `${pair.poolA.slice(0, 4)}…/${pair.poolB.slice(0, 4)}…`
-  const amount = pair.amountRaw ?? AMOUNT_RAW
+function needsGrpc(): boolean {
+  const m = workerMode()
+  return m === 'stream' || m === 'both'
+}
 
-  let res: Awaited<ReturnType<typeof compareDlmmPairPools>>
-  try {
-    res = await compareDlmmPairPools(connection, {
-      poolA: new PublicKey(pair.poolA),
-      poolB: new PublicKey(pair.poolB),
-      startMint: new PublicKey(pair.startMint),
-      startAmountIn: BigInt(amount),
-    })
-  } catch (e) {
-    console.error(`[worker] pair ${label} quote error`, e)
-    return
+function grpcConfigured(): boolean {
+  return !!(process.env.YELLOWSTONE_GRPC_URL?.trim() || process.env.GRPC_URL?.trim())
+}
+
+function bridgeConfigured(): boolean {
+  return !!(process.env.STREAM_BRIDGE_POOL_A?.trim() && process.env.STREAM_BRIDGE_POOL_B?.trim() && process.env.STREAM_BRIDGE_START_MINT?.trim())
+}
+
+async function main(): Promise<void> {
+  const mode = workerMode()
+  console.log(`[worker] WORKER_MODE=${mode}`)
+
+  if (!['poll', 'stream', 'both'].includes(mode)) {
+    throw new Error(`WORKER_MODE must be poll | stream | both (got ${mode})`)
   }
 
-  if (res.ok && res.opportunity) {
-    const enriched = {
-      ...res.opportunity,
-      scannerLabel: label,
+  if (needsPoll()) {
+    requireEnv('HELIUS_API_KEY', process.env.HELIUS_API_KEY)
+  }
+
+  if (needsGrpc()) {
+    if (!grpcConfigured()) {
+      throw new Error('Stream mode requires YELLOWSTONE_GRPC_URL or GRPC_URL')
     }
-    await postOpportunity(enriched)
-    maybeLogExecutionPlan(enriched as LiveOpportunity)
-  } else {
-    console.log(`[worker] ${label} — no opportunity:`, res.abortReason)
+    if (bridgeConfigured()) {
+      requireEnv('HELIUS_API_KEY', process.env.HELIUS_API_KEY)
+    }
   }
-}
 
-async function tick() {
-  const pairs = loadPoolPairs()
-  if (pairs.length === 0) {
-    console.error(
-      '[worker] No pool pairs: set POOL_PAIRS_FILE or POOL_PAIRS_JSON (array of {poolA,poolB,startMint}) or POOL_A + POOL_B + START_MINT'
-    )
+  if (needsGrpc() && needsPoll()) {
+    void runYellowstoneForever().catch((e) => console.error('[grpc] fatal background stream error', e))
+    await runPollForever()
     return
   }
 
-  const connection = createRpcConnection()
-  console.log(`[worker] scanning ${pairs.length} pair(s)`)
-
-  for (let i = 0; i < pairs.length; i++) {
-    await scanPair(connection, pairs[i]!)
-    if (PAIR_STAGGER_MS > 0 && i < pairs.length - 1) {
-      await sleep(PAIR_STAGGER_MS)
-    }
+  if (needsGrpc()) {
+    await runYellowstoneForever()
+    return
   }
-}
 
-async function main() {
-  requireEnv('HELIUS_API_KEY', process.env.HELIUS_API_KEY)
-  const pairs = loadPoolPairs()
-  console.log(`[worker] ${pairs.length} pair(s) configured · poll ${POLL_MS}ms · stagger ${PAIR_STAGGER_MS}ms`)
-  for (;;) {
-    try {
-      await tick()
-    } catch (e) {
-      console.error('[worker] tick error', e)
-    }
-    await new Promise((r) => setTimeout(r, POLL_MS))
-  }
+  await runPollForever()
 }
 
 main().catch((e) => {

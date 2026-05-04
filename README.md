@@ -8,7 +8,7 @@ This repo splits responsibilities so you can deploy **what fits on Vercel** (the
 |--------|----------------|------|
 | `apps/web` | **Vercel** | Dashboard, `POST /api/opportunities` (authenticated), `GET /api/opportunities`, health |
 | `packages/core` | Shared library | DLMM `swapQuote` math, slippage guards, blacklist, tip heuristic |
-| `apps/worker` | **Fly.io / Railway / bare metal** | Poll loop over **one or many** two-pool configs (`POOL_PAIRS_JSON` / `POOL_PAIRS_FILE`) · future Yellowstone stream consumer |
+| `apps/worker` | **Fly.io / Railway / bare metal** | Poll loop over **one or many** two-pool configs (`POOL_PAIRS_JSON` / `POOL_PAIRS_FILE`) · optional **Yellowstone gRPC** (`WORKER_MODE=stream|both`, `YELLOWSTONE_GRPC_URL` / `GRPC_URL`) with optional `STREAM_BRIDGE_*` compare hook |
 
 Ultra-low-latency streaming and bundle landing are **host-bound**, not framework-bound: serverless functions have short timeouts and no durable sockets, so the worker is intentionally separate.
 
@@ -55,7 +55,7 @@ HELIUS_API_KEY=... POOL_A=... POOL_B=... START_MINT=... DASHBOARD_URL=... ENGINE
 ## What is implemented vs. what you extend
 
 - **Implemented:** Two-pool, same-pair Meteora DLMM round-trip quote using `swapQuote` and bin arrays, output in the “live opportunity” shape, POST to your Vercel API, simple feed + **`/dashboard`** (Tailwind shell, live rows, disabled Snipe button placeholder), worker hook **`EXECUTION_MODE=simulate`** (logs a dry-run plan only).
-- **You extend:** Full SOLEDGE-style panels (Shredstream, smart money, charts), multi-hop graph, cross-DEX, Yellowstone, **real Jito bundles + signing** (explicit security/custody work — `EXECUTION_MODE=live` is a stub).
+- **You extend:** Full SOLEDGE-style panels (Shredstream, smart money, charts), multi-hop graph, cross-DEX, deeper gRPC subscriptions + landing, hardened **live execution** (explicit security/custody work — tune caps and infra).
 
 ### Both tracks (UI + execution)
 

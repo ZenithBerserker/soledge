@@ -16,9 +16,10 @@ Snapshot only — **we do not mirror these repos automatically.** Re-review upst
 
 ## Out of scope (follow upstream if you need them)
 
-- **Yellowstone / Shredstream / gRPC ingestion** — pool detection latency; requires separate service + subscriptions ([Meteora sniper README pattern](https://github.com/machenxi/meteora-sniper-bot)).
+- **Shredstream-only / ultra-low-latency landing paths** beyond what our scaffold covers — tune subscriptions + infra per provider.
 - **Multi-wallet parallel sends**, Jupiter aggregation, Pump.fun routing — different product surface than our two-pool DLMM divergence worker.
 
 ## Implemented here (incremental)
 
 - **Multi-pair polling**: worker reads `POOL_PAIRS_JSON` or `POOL_PAIRS_FILE` (see `apps/worker/config/pool-pairs.example.json`) and scans each pair every tick with optional `PAIR_STAGGER_MS`.
+- **Yellowstone gRPC scaffold** (`WORKER_MODE=stream|both`): `@triton-one/yellowstone-grpc` subscription on Meteora LB program txs; optional **`STREAM_BRIDGE_*`** cooldown bridge into `compareDlmmPairPools` + ingest (`scannerKind=grpc-bridge`). Pure stream without bridge does **not** require `HELIUS_API_KEY`.

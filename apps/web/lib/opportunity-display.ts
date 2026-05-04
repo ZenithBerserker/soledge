@@ -67,3 +67,9 @@ export function scannerLabelDisplay(o: Record<string, unknown>): string | null {
   if (typeof v !== 'string' || !v.trim()) return null
   return v.trim()
 }
+
+export function scannerKindDisplay(o: Record<string, unknown>): string | null {
+  const v = o.scannerKind
+  if (typeof v !== 'string' || !v.trim()) return null
+  return v.trim()
+}

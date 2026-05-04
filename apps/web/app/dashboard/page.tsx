@@ -8,6 +8,7 @@ import {
   payloadRecord,
   priorityBadge,
   routeStepLines,
+  scannerKindDisplay,
   scannerLabelDisplay,
 } from '@/lib/opportunity-display'
 import { listRecentOpportunities } from '@/lib/opportunities'
@@ -49,6 +50,7 @@ export default async function DashboardPage() {
             const o = payloadRecord(row.payload)
             const steps = routeStepLines(o.routeSteps)
             const scanLabel = scannerLabelDisplay(o)
+            const scanKind = scannerKindDisplay(o)
             return (
               <li key={row.id} className="sniper-token-card">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -59,9 +61,11 @@ export default async function DashboardPage() {
                         {priorityBadge(o) || '—'}
                       </span>
                     </div>
-                    {scanLabel && (
+                    {(scanLabel || scanKind) && (
                       <div className="mt-1 sniper-mono text-[10px] uppercase tracking-wide text-[var(--sn-text3)]">
-                        scanner · {scanLabel}
+                        scanner
+                        {scanKind ? ` · ${scanKind}` : ''}
+                        {scanLabel ? ` · ${scanLabel}` : ''}
                       </div>
                     )}
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 sniper-mono text-[11px] text-[var(--sn-text3)]">
