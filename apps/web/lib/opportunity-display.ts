@@ -60,3 +60,10 @@ export function priorityBadge(o: Record<string, unknown>): string {
 export function payloadRecord(payload: unknown): Record<string, unknown> {
   return asRecord(payload)
 }
+
+/** Worker multi-pair ingest sets `scannerLabel` on the JSON payload. */
+export function scannerLabelDisplay(o: Record<string, unknown>): string | null {
+  const v = o.scannerLabel ?? o.pair_label ?? o.scanner_label
+  if (typeof v !== 'string' || !v.trim()) return null
+  return v.trim()
+}

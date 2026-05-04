@@ -8,7 +8,7 @@ This repo splits responsibilities so you can deploy **what fits on Vercel** (the
 |--------|----------------|------|
 | `apps/web` | **Vercel** | Dashboard, `POST /api/opportunities` (authenticated), `GET /api/opportunities`, health |
 | `packages/core` | Shared library | DLMM `swapQuote` math, slippage guards, blacklist, tip heuristic |
-| `apps/worker` | **Fly.io / Railway / bare metal** | Poll loop (MVP) or future Yellowstone stream consumer |
+| `apps/worker` | **Fly.io / Railway / bare metal** | Poll loop over **one or many** two-pool configs (`POOL_PAIRS_JSON` / `POOL_PAIRS_FILE`) · future Yellowstone stream consumer |
 
 Ultra-low-latency streaming and bundle landing are **host-bound**, not framework-bound: serverless functions have short timeouts and no durable sockets, so the worker is intentionally separate.
 

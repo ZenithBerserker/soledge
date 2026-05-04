@@ -1,7 +1,8 @@
 /**
- * Long-running process: NOT for Vercel. Run on a low-latency host near your RPC.
- * Set POOL_A, POOL_B (Meteora LB pair pubkeys), START_MINT, AMOUNT_RAW, poll interval, and DASHBOARD_URL to POST hits.
+ * Long-running process: NOT for Vercel. Run near your RPC.
+ * Configure one pair via POOL_A/POOL_B/START_MINT or many via POOL_PAIRS_JSON / POOL_PAIRS_FILE.
  */
+import type { Connection } from '@solana/web3.js'
 import { PublicKey } from '@solana/web3.js'
 import {
   compareDlmmPairPools,
@@ -9,12 +10,12 @@ import {
   type LiveOpportunity,
 } from '@solana-mev-bot/core'
 import { maybeLogExecutionPlan } from './execution'
+import { loadPoolPairs, type WorkerPoolPair } from './poolPairs'
 
-const POOL_A = process.env.POOL_A
-const POOL_B = process.env.POOL_B
-const START_MINT = process.env.START_MINT
 const AMOUNT_RAW = process.env.AMOUNT_RAW ?? '1000000'
 const POLL_MS = Math.max(3_000, Number(process.env.POLL_MS) || 15_000)
+/** Delay between scanning each pair inside one tick (reduces RPC bursts). */
+const PAIR_STAGGER_MS = Math.max(0, Number(process.env.PAIR_STAGGER_MS) || 250)
 const DASHBOARD_URL = process.env.DASHBOARD_URL
 const INGEST_SECRET = process.env.ENGINE_INGEST_SECRET
 
@@ -45,33 +46,63 @@ async function postOpportunity(body: object) {
   }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
+async function scanPair(connection: Connection, pair: WorkerPoolPair) {
+  const label = pair.label ?? `${pair.poolA.slice(0, 4)}…/${pair.poolB.slice(0, 4)}…`
+  const amount = pair.amountRaw ?? AMOUNT_RAW
+
+  let res: Awaited<ReturnType<typeof compareDlmmPairPools>>
+  try {
+    res = await compareDlmmPairPools(connection, {
+      poolA: new PublicKey(pair.poolA),
+      poolB: new PublicKey(pair.poolB),
+      startMint: new PublicKey(pair.startMint),
+      startAmountIn: BigInt(amount),
+    })
+  } catch (e) {
+    console.error(`[worker] pair ${label} quote error`, e)
+    return
+  }
+
+  if (res.ok && res.opportunity) {
+    const enriched = {
+      ...res.opportunity,
+      scannerLabel: label,
+    }
+    await postOpportunity(enriched)
+    maybeLogExecutionPlan(enriched as LiveOpportunity)
+  } else {
+    console.log(`[worker] ${label} — no opportunity:`, res.abortReason)
+  }
+}
+
 async function tick() {
-  if (!POOL_A || !POOL_B || !START_MINT) {
+  const pairs = loadPoolPairs()
+  if (pairs.length === 0) {
     console.error(
-      'Set POOL_A, POOL_B, START_MINT (and HELIUS_API_KEY) to run the two-pool comparison loop.'
+      '[worker] No pool pairs: set POOL_PAIRS_FILE or POOL_PAIRS_JSON (array of {poolA,poolB,startMint}) or POOL_A + POOL_B + START_MINT'
     )
     return
   }
 
   const connection = createRpcConnection()
-  const res = await compareDlmmPairPools(connection, {
-    poolA: new PublicKey(POOL_A),
-    poolB: new PublicKey(POOL_B),
-    startMint: new PublicKey(START_MINT),
-    startAmountIn: BigInt(AMOUNT_RAW),
-  })
+  console.log(`[worker] scanning ${pairs.length} pair(s)`)
 
-  if (res.ok && res.opportunity) {
-    await postOpportunity(res.opportunity)
-    maybeLogExecutionPlan(res.opportunity as LiveOpportunity)
-  } else {
-    console.log('[worker] no opportunity:', res.abortReason)
+  for (let i = 0; i < pairs.length; i++) {
+    await scanPair(connection, pairs[i]!)
+    if (PAIR_STAGGER_MS > 0 && i < pairs.length - 1) {
+      await sleep(PAIR_STAGGER_MS)
+    }
   }
 }
 
 async function main() {
   requireEnv('HELIUS_API_KEY', process.env.HELIUS_API_KEY)
-  console.log(`[worker] polling every ${POLL_MS}ms`)
+  const pairs = loadPoolPairs()
+  console.log(`[worker] ${pairs.length} pair(s) configured · poll ${POLL_MS}ms · stagger ${PAIR_STAGGER_MS}ms`)
   for (;;) {
     try {
       await tick()
