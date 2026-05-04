@@ -11,6 +11,8 @@ import {
   pickRandomTipAccount,
   sendJitoBundle,
 } from '../jitoBundle'
+import { prependComputeBudgetInstructions } from '../solana/computeBudget'
+import { simulateTransactionOrSkip } from '../solana/simulate'
 import { compareDlmmPairPools } from './divergence'
 import { buildDlmmSwapTransaction, quoteHop } from './quote'
 
@@ -64,8 +66,9 @@ export async function buildTwoPoolRoundTripTransaction(
     recentBlockhash: blockhash,
   })
 
-  for (const ix of tx1.instructions) merged.add(ix)
-  for (const ix of tx2.instructions) merged.add(ix)
+  const swapIxs = [...tx1.instructions, ...tx2.instructions]
+  const allIxs = prependComputeBudgetInstructions(swapIxs)
+  for (const ix of allIxs) merged.add(ix)
 
   return { transaction: merged, blockhash, lastValidBlockHeight }
 }
@@ -113,6 +116,8 @@ export async function signAndSendTwoPoolRoundTrip(
   const built = await buildTwoPoolRoundTripTransaction(connection, params, signer.publicKey)
   built.transaction.sign(signer)
 
+  await simulateTransactionOrSkip(connection, built.transaction)
+
   return sendSignedRpc(connection, built.transaction, built.blockhash, built.lastValidBlockHeight)
 }
 
@@ -131,6 +136,8 @@ export async function sendTwoPoolRoundTripJitoBundle(
 
   const built = await buildTwoPoolRoundTripTransaction(connection, params, signer.publicKey)
   built.transaction.sign(signer)
+
+  await simulateTransactionOrSkip(connection, built.transaction)
 
   const tipDest = pickRandomTipAccount(await fetchJitoTipAccounts(bundleEndpoint))
   const tipTx = buildSolTipTransaction({

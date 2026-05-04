@@ -12,6 +12,8 @@ This repo splits responsibilities so you can deploy **what fits on Vercel** (the
 
 Ultra-low-latency streaming and bundle landing are **host-bound**, not framework-bound: serverless functions have short timeouts and no durable sockets, so the worker is intentionally separate.
 
+Related upstream patterns (Yellowstone/Jupiter/Rust bots, execution hygiene): see [docs/REFERENCES.md](docs/REFERENCES.md).
+
 ## Quick start (local)
 
 ```bash

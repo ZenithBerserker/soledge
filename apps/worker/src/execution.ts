@@ -59,9 +59,20 @@ async function executeLiveTwoPool(opp: LiveOpportunity): Promise<void> {
 
   if (submit === 'jito') {
     console.log('[execution] LIVE Jito bundle (arb tx + tip tx), tip lamports:', tipLamports)
-    const bundleId = await sendTwoPoolRoundTripJitoBundle(connection, kp, params, tipLamports)
-    console.log('[execution] Jito bundle id:', bundleId)
-    return
+    try {
+      const bundleId = await sendTwoPoolRoundTripJitoBundle(connection, kp, params, tipLamports)
+      console.log('[execution] Jito bundle id:', bundleId)
+      return
+    } catch (e) {
+      const fb = (process.env.EXECUTION_JITO_FALLBACK_RPC ?? '').toLowerCase()
+      if (fb !== 'true' && fb !== '1') {
+        throw e
+      }
+      console.warn('[execution] Jito submit failed — EXECUTION_JITO_FALLBACK_RPC retry via RPC:', e)
+      const sig = await signAndSendTwoPoolRoundTrip(connection, kp, params)
+      console.log('[execution] RPC landed signature:', sig)
+      return
+    }
   }
 
   console.log('[execution] LIVE RPC send merged Meteora DLMM round-trip…')
@@ -71,7 +82,7 @@ async function executeLiveTwoPool(opp: LiveOpportunity): Promise<void> {
 
 /**
  * Worker-side execution only (never put EXECUTOR_SECRET_KEY on Vercel).
- * Use EXECUTION_SUBMIT=jito for Block Engine bundles (arb + SOL tip); default rpc sends one merged tx via RPC.
+ * Use EXECUTION_SUBMIT=jito for Block Engine bundles (arb + SOL tip); EXECUTION_JITO_FALLBACK_RPC=true retries RPC on submit failure.
  */
 export function maybeLogExecutionPlan(opp: LiveOpportunity): void {
   const mode = (process.env.EXECUTION_MODE ?? 'off').toLowerCase()
