@@ -81,7 +81,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="sniper-rp-section">
               <div className="sniper-rp-title">LATENCY (MOCK)</div>
               <div className="sniper-rp-body sniper-mono text-[10px] text-[var(--sn-text3)]">
-                Connect Shredstream / Yellowstone in your own infra. Dashboard is read-mostly + server simulate.
+                Yellowstone-style stream lives on the worker (<span className="text-[var(--sn-cyan)]">WORKER_MODE=stream</span>{' '}
+                / <span className="text-[var(--sn-cyan)]">both</span>), not on Vercel. This panel stays mock until you wire tip/latency APIs.
               </div>
             </div>
             <div className="sniper-rp-section">

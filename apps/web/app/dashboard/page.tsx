@@ -18,6 +18,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   const rows = await listRecentOpportunities(40)
+  const deploySha = process.env.VERCEL_GIT_COMMIT_SHA?.trim().slice(0, 7)
 
   return (
     <div className="p-4 md:p-5">
@@ -29,6 +30,21 @@ export default async function DashboardPage() {
             <strong className="text-[var(--sn-text2)]">Simulate snipe</strong> re-quotes on the server;{' '}
             <strong className="text-[var(--sn-text2)]">LIVE swaps</strong> fire from the worker only (
             <span className="sniper-mono text-[11px] text-[var(--sn-cyan)]">EXECUTION_MODE=live</span>).
+            {deploySha ? (
+              <>
+                {' '}
+                <span className="sniper-mono text-[11px] text-[var(--sn-text3)]">
+                  · UI deploy <span className="text-[var(--sn-cyan)]">{deploySha}</span>
+                </span>
+              </>
+            ) : null}
+          </p>
+          <p className="mt-1 max-w-xl sniper-mono text-[10px] leading-relaxed text-[var(--sn-text3)]">
+            Rows ingested before the worker tagged payloads show{' '}
+            <span className="text-[var(--sn-text2)]">scanner · legacy ingest</span>. Redeploy this app after git push,
+            run the latest worker, and wait for a new POST to see{' '}
+            <span className="text-[var(--sn-text2)]">poll</span> /{' '}
+            <span className="text-[var(--sn-text2)]">grpc-bridge</span>.
           </p>
         </div>
         <div className="sniper-mono flex gap-2 text-[11px] text-[var(--sn-text2)]">
@@ -61,13 +77,12 @@ export default async function DashboardPage() {
                         {priorityBadge(o) || '—'}
                       </span>
                     </div>
-                    {(scanLabel || scanKind) && (
-                      <div className="mt-1 sniper-mono text-[10px] uppercase tracking-wide text-[var(--sn-text3)]">
-                        scanner
-                        {scanKind ? ` · ${scanKind}` : ''}
-                        {scanLabel ? ` · ${scanLabel}` : ''}
-                      </div>
-                    )}
+                    <div className="mt-1 sniper-mono text-[10px] uppercase tracking-wide text-[var(--sn-text3)]">
+                      scanner
+                      {scanKind ? ` · ${scanKind}` : ''}
+                      {scanLabel ? ` · ${scanLabel}` : ''}
+                      {!scanKind && !scanLabel ? ' · legacy ingest' : ''}
+                    </div>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 sniper-mono text-[11px] text-[var(--sn-text3)]">
                       <span>
                         Tip: {jitoTipDisplay(o)}
