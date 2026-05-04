@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import {
   confidenceDisplay,
@@ -34,6 +35,11 @@ export default async function Page() {
 
   return (
     <main>
+      <p className="sub" style={{ marginBottom: '0.75rem' }}>
+        <Link href="/dashboard" style={{ fontWeight: 500 }}>
+          Open terminal-style dashboard →
+        </Link>
+      </p>
       <h1>Meteora DLMM scanner feed</h1>
       <p className="sub">
         Monitors Meteora-style DLMM routes for large quoted edges (worker-side); small clips, slippage caps, and sim

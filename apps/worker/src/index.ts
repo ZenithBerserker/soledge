@@ -6,7 +6,9 @@ import { PublicKey } from '@solana/web3.js'
 import {
   compareDlmmPairPools,
   createRpcConnection,
+  type LiveOpportunity,
 } from '@solana-mev-bot/core'
+import { maybeLogExecutionPlan } from './execution-stub'
 
 const POOL_A = process.env.POOL_A
 const POOL_B = process.env.POOL_B
@@ -61,6 +63,7 @@ async function tick() {
 
   if (res.ok && res.opportunity) {
     await postOpportunity(res.opportunity)
+    maybeLogExecutionPlan(res.opportunity as LiveOpportunity)
   } else {
     console.log('[worker] no opportunity:', res.abortReason)
   }

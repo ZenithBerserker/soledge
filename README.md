@@ -52,8 +52,15 @@ HELIUS_API_KEY=... POOL_A=... POOL_B=... START_MINT=... DASHBOARD_URL=... ENGINE
 
 ## What is implemented vs. what you extend
 
-- **Implemented:** Two-pool, same-pair Meteora DLMM round-trip quote using `swapQuote` and bin arrays, output in the “live opportunity” shape, POST to your Vercel API, dashboard read path.
-- **You extend:** Multi-hop graph (USDC → A → B → USDC), cross-DEX, Yellowstone listeners, real-time liquidity TVL, full transaction simulation + Jito bundle construction (use your key material only on the worker).
+- **Implemented:** Two-pool, same-pair Meteora DLMM round-trip quote using `swapQuote` and bin arrays, output in the “live opportunity” shape, POST to your Vercel API, simple feed + **`/dashboard`** (Tailwind shell, live rows, disabled Snipe button placeholder), worker hook **`EXECUTION_MODE=simulate`** (logs a dry-run plan only).
+- **You extend:** Full SOLEDGE-style panels (Shredstream, smart money, charts), multi-hop graph, cross-DEX, Yellowstone, **real Jito bundles + signing** (explicit security/custody work — `EXECUTION_MODE=live` is a stub).
+
+### Both tracks (UI + execution)
+
+| Track | Now | Next milestones |
+|--------|-----|-------------------|
+| **Dashboard** | `/dashboard` layout + opportunity list | Real-time streams, filters, charts, enabled Snipe after execution exists |
+| **Execution** | `simulate` logs only; `live` warns | Wallet + swap instructions + Jito API + simulation gate + caps |
 
 ## Disclosures
 
