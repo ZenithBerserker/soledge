@@ -25,7 +25,9 @@ export function DiscoveryScanButton() {
                 }
                 const errTail =
                   r.errors.length > 0 ? ` · warnings: ${r.errors.slice(0, 4).join(' · ')}` : ''
-                setMsg(`OK · scanned ${r.scanned} · ingested ${r.ingested}${errTail}`)
+                setMsg(
+                  `OK · pair configs scanned ${r.scanned} · rows ingested ${r.ingested}${errTail}`
+                )
               } finally {
                 setLoading(false)
               }
@@ -39,7 +41,8 @@ export function DiscoveryScanButton() {
           Requires{' '}
           <span className="text-[var(--sn-cyan)]">DISCOVERY_SCAN_ENABLED=1</span> + pair JSON +{' '}
           <span className="text-[var(--sn-cyan)]">HELIUS_API_KEY</span> · capped pairs/time (
-          <span className="text-[var(--sn-text2)]">DISCOVERY_MAX_PAIRS_PER_SCAN</span>)
+          <span className="text-[var(--sn-text2)]">DISCOVERY_MAX_PAIRS_PER_SCAN</span>) · each JSON entry =
+          one two-pool route (poolA + poolB + startMint), not “every Meteora pool”
         </span>
       </div>
       {msg && (
