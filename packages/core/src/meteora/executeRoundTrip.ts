@@ -2,6 +2,7 @@ import DLMM from '@meteora-ag/dlmm'
 import BN from 'bn.js'
 import type { Connection, Keypair } from '@solana/web3.js'
 import { PublicKey, Transaction } from '@solana/web3.js'
+import { DEFAULT_BIN_ARRAY_COUNT, envNumber } from '../config'
 import type { ComparePoolsParams } from '../types'
 import {
   DEFAULT_JITO_BUNDLE_ENDPOINT,
@@ -20,6 +21,20 @@ export interface BuiltTwoPoolRoundTrip {
   transaction: Transaction
   blockhash: string
   lastValidBlockHeight: number
+  /** Bin-array pages used for both swap legs (smaller ⇒ smaller tx, may miss deep liquidity). */
+  binArrayCountUsed: number
+}
+
+/** Legacy packet limit; reserve 1 × 64-byte signature for fee payer. */
+const MAX_LEGACY_PACKET = 1232
+const RESERVED_FOR_ONE_SIGNATURE = 64
+const MAX_UNSIGNED_SERIALIZED_LEN = MAX_LEGACY_PACKET - RESERVED_FOR_ONE_SIGNATURE
+
+function legacyTxWireLenPreSign(tx: Transaction): number {
+  return tx.serialize({
+    requireAllSignatures: false,
+    verifySignatures: false,
+  }).length
 }
 
 function assertSameTwoMints(pa: DLMM, pb: DLMM): void {
@@ -36,6 +51,8 @@ function assertSameTwoMints(pa: DLMM, pb: DLMM): void {
 
 /**
  * Builds one legacy transaction containing swap ix for pool A then pool B (same blockhash).
+ * Decreases `binArrayCount` (min 3) until the serialized tx fits under the ~1232-byte wire limit
+ * after the fee payer signature (fixes "Transaction too large: 1272 > 1232" in wallets).
  */
 export async function buildTwoPoolRoundTripTransaction(
   connection: Connection,
@@ -53,24 +70,41 @@ export async function buildTwoPoolRoundTripTransaction(
     : pa.tokenX.publicKey
 
   const inBn = new BN(params.startAmountIn.toString())
-  const hop1 = await quoteHop(pa, params.startMint, inBn)
-  await quoteHop(pb, midMint, hop1.outAmount)
-
-  const tx1 = await buildDlmmSwapTransaction(pa, params.startMint, inBn, feePayer)
-  const tx2 = await buildDlmmSwapTransaction(pb, midMint, hop1.outAmount, feePayer)
+  let binArrayCount = envNumber('METEORA_BIN_ARRAY_COUNT', DEFAULT_BIN_ARRAY_COUNT)
+  const minBins = envNumber('METEORA_BIN_ARRAY_COUNT_MIN', 3)
+  binArrayCount = Math.max(minBins, Math.min(binArrayCount, 32))
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
 
-  const merged = new Transaction({
-    feePayer,
-    recentBlockhash: blockhash,
-  })
+  let merged: Transaction = new Transaction()
+  let wireLen = MAX_UNSIGNED_SERIALIZED_LEN + 1
 
-  const swapIxs = [...tx1.instructions, ...tx2.instructions]
-  const allIxs = prependComputeBudgetInstructions(swapIxs)
-  for (const ix of allIxs) merged.add(ix)
+  while (wireLen > MAX_UNSIGNED_SERIALIZED_LEN && binArrayCount >= minBins) {
+    const hop1 = await quoteHop(pa, params.startMint, inBn, binArrayCount)
+    await quoteHop(pb, midMint, hop1.outAmount, binArrayCount)
 
-  return { transaction: merged, blockhash, lastValidBlockHeight }
+    const tx1 = await buildDlmmSwapTransaction(pa, params.startMint, inBn, feePayer, binArrayCount)
+    const tx2 = await buildDlmmSwapTransaction(pb, midMint, hop1.outAmount, feePayer, binArrayCount)
+
+    merged = new Transaction({
+      feePayer,
+      recentBlockhash: blockhash,
+    })
+    const swapIxs = [...tx1.instructions, ...tx2.instructions]
+    const allIxs = prependComputeBudgetInstructions(swapIxs)
+    for (const ix of allIxs) merged.add(ix)
+
+    wireLen = legacyTxWireLenPreSign(merged)
+    if (wireLen <= MAX_UNSIGNED_SERIALIZED_LEN) {
+      return { transaction: merged, blockhash, lastValidBlockHeight, binArrayCountUsed: binArrayCount }
+    }
+    binArrayCount -= 1
+  }
+
+  throw new Error(
+    `Merged DLMM round-trip too large for one legacy tx (~${wireLen} + ~${RESERVED_FOR_ONE_SIGNATURE}b sig > ${MAX_LEGACY_PACKET}). ` +
+      `Tried binArrayCount down to ${minBins}. Lower METEORA_BIN_ARRAY_COUNT or use smaller / fewer bin accounts (pools); v0 + LUT not implemented yet.`
+  )
 }
 
 /** Re-quote with threshold from env; throw if below MIN_PROFIT_MULTIPLE or abort. */
@@ -122,12 +156,8 @@ export async function signAndSendTwoPoolRoundTrip(
 }
 
 /**
- * Signs arb tx + SOL tip tx (tip last), submits bundle to Jito Block Engine. Returns bundle id (poll status separately).
- * Tip pays one of getTipAccounts — required for auction inclusion.
- */
-/**
  * Build merged DLMM round-trip for a wallet fee payer; optionally skip the same profit gate the worker uses.
- * Phantom/your wallet runs preflight simulation when you send; legacy unsigned RPC simulate is unreliable with web3.js typings.
+ * Phantom/your wallet runs preflight simulation when you send.
  */
 export async function prepareWalletTwoPoolRoundTrip(
   connection: Connection,
@@ -141,6 +171,7 @@ export async function prepareWalletTwoPoolRoundTrip(
   return buildTwoPoolRoundTripTransaction(connection, params, feePayer)
 }
 
+/** Signs arb tx + SOL tip tx (tip last), submits bundle to Jito Block Engine. Returns bundle id. */
 export async function sendTwoPoolRoundTripJitoBundle(
   connection: Connection,
   signer: Keypair,

@@ -76,6 +76,7 @@ export async function POST(req: Request) {
       txBase64: txToBase64(built.transaction),
       blockhash: built.blockhash,
       lastValidBlockHeight: built.lastValidBlockHeight,
+      binArrayCountUsed: built.binArrayCountUsed,
       skipProfitCheck,
     })
   } catch (e) {

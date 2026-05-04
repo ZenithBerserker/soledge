@@ -53,6 +53,7 @@ export function WalletArbButton({ logId }: { logId: string }) {
               const j = (await r.json()) as {
                 error?: string
                 txBase64?: string
+                binArrayCountUsed?: number
               }
               if (!r.ok || j.error || !j.txBase64) {
                 setMsg(j.error ?? `Prepare failed (${r.status})`)
@@ -63,7 +64,9 @@ export function WalletArbButton({ logId }: { logId: string }) {
                 skipPreflight: false,
                 maxRetries: 5,
               })
-              setMsg(`Sent · ${sig}`)
+              const bins =
+                typeof j.binArrayCountUsed === 'number' ? ` · bins=${j.binArrayCountUsed}` : ''
+              setMsg(`Sent · ${sig}${bins}`)
             } catch (e) {
               setMsg(e instanceof Error ? e.message : String(e))
             } finally {
