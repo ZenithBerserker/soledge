@@ -8,7 +8,7 @@ import {
   createRpcConnection,
   type LiveOpportunity,
 } from '@solana-mev-bot/core'
-import { maybeLogExecutionPlan } from './execution-stub'
+import { maybeLogExecutionPlan } from './execution'
 
 const POOL_A = process.env.POOL_A
 const POOL_B = process.env.POOL_B

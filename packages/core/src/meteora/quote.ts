@@ -1,6 +1,6 @@
 import DLMM from '@meteora-ag/dlmm'
 import BN from 'bn.js'
-import type { Connection, PublicKey } from '@solana/web3.js'
+import type { PublicKey, Transaction } from '@solana/web3.js'
 import {
   DEFAULT_BIN_ARRAY_COUNT,
   DEFAULT_MAX_SLIPPAGE_BPS,
@@ -8,12 +8,17 @@ import {
   envNumber,
 } from '../config'
 
-function swapForYForHop(pool: DLMM, fromMint: PublicKey): boolean {
+/** True when swapping fixed token X → Y for this hop (matches DLMM `swapQuote` / `swap` semantics). */
+export function swapForYFromMint(pool: DLMM, fromMint: PublicKey): boolean {
   const x = pool.tokenX.publicKey
   const y = pool.tokenY.publicKey
   if (fromMint.equals(x)) return true
   if (fromMint.equals(y)) return false
   throw new Error('Route mint is not part of this DLMM pair')
+}
+
+function swapForYForHop(pool: DLMM, fromMint: PublicKey): boolean {
+  return swapForYFromMint(pool, fromMint)
 }
 
 export interface HopQuote {
@@ -48,4 +53,37 @@ export async function quoteHop(
     priceImpact: impact,
     swapForY,
   }
+}
+
+/**
+ * Build a legacy {@link Transaction} for one DLMM swap leg (Meteora SDK).
+ * Caller merges legs + sets blockhash before signing / sending.
+ */
+export async function buildDlmmSwapTransaction(
+  pool: DLMM,
+  fromMint: PublicKey,
+  inAmount: BN,
+  user: PublicKey,
+  binArrayCount = envNumber('METEORA_BIN_ARRAY_COUNT', DEFAULT_BIN_ARRAY_COUNT)
+): Promise<Transaction> {
+  const swapForY = swapForYFromMint(pool, fromMint)
+  const binArrays = await pool.getBinArrayForSwap(swapForY, binArrayCount)
+  const sq = pool.swapQuote(inAmount, swapForY, SLIPPAGE_BN, binArrays, true, 3)
+
+  const x = pool.tokenX.publicKey
+  const y = pool.tokenY.publicKey
+  const inToken = swapForY ? x : y
+  const outToken = swapForY ? y : x
+
+  const built = await pool.swap({
+    inToken,
+    outToken,
+    binArraysPubkey: sq.binArraysPubkey,
+    inAmount,
+    lbPair: pool.pubkey,
+    user,
+    minOutAmount: sq.minOutAmount,
+  })
+
+  return Array.isArray(built) ? built[0] : built
 }

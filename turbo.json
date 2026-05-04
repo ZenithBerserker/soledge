@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["DATABASE_URL","ENGINE_INGEST_SECRET","ENGINE_BOT_TOKEN","EXECUTION_MODE","HELIUS_API_KEY","JITO_AUTH_TOKEN","POOL_A","POOL_B","START_MINT","DASHBOARD_URL"],
+  "globalEnv": ["DATABASE_URL","ENGINE_INGEST_SECRET","ENGINE_BOT_TOKEN","EXECUTION_MODE","EXECUTION_LIVE_CONFIRM","EXECUTOR_SECRET_KEY","HELIUS_API_KEY","JITO_AUTH_TOKEN","POOL_A","POOL_B","START_MINT","DASHBOARD_URL"],
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": [".next/**", "dist/**"] },
     "dev":   { "cache": false, "persistent": true },

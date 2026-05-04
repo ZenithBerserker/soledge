@@ -1,64 +1,99 @@
 import Link from 'next/link'
-import { Activity, LayoutDashboard, Radio } from 'lucide-react'
+import { JetBrains_Mono, Space_Grotesk } from 'next/font/google'
 import { JitoTipPanel } from './jito-panel'
+import './sniper-theme.css'
+
+const fontSans = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-ui',
+})
+
+const fontMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+})
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
-      <aside className="hidden w-52 shrink-0 border-r border-zinc-800/80 bg-zinc-900/40 p-4 md:block">
-        <div className="mb-8 font-semibold tracking-tight">
-          <span className="text-emerald-400">●</span> SOLEDGE
-          <span className="ml-1 rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-normal text-zinc-400">beta</span>
-        </div>
-        <nav className="flex flex-col gap-1 text-sm text-zinc-400">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 rounded-lg bg-zinc-800/80 px-3 py-2 text-zinc-100"
-          >
-            <LayoutDashboard className="h-4 w-4 shrink-0 text-emerald-400" />
-            Live feed
-          </Link>
-          <span className="flex cursor-not-allowed items-center gap-2 rounded-lg px-3 py-2 opacity-50">
-            <Radio className="h-4 w-4" />
-            Smart money
-            <span className="ml-auto text-[10px]">soon</span>
-          </span>
-          <span className="flex cursor-not-allowed items-center gap-2 rounded-lg px-3 py-2 opacity-50">
-            <Activity className="h-4 w-4" />
-            Jito metrics
-            <span className="ml-auto text-[10px]">soon</span>
-          </span>
-          <Link href="/" className="mt-6 rounded-lg px-3 py-2 text-zinc-500 hover:text-emerald-400">
-            ← Simple feed
-          </Link>
-        </nav>
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-zinc-800/80 bg-zinc-900/30 px-4 py-3">
-          <div className="flex items-center gap-3 text-xs text-zinc-500">
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              RPC
-            </span>
-            <span className="hidden sm:inline">Meteora DLMM · ingest + quotes</span>
+    <div className={`${fontSans.variable} ${fontMono.variable} sniper-root`}>
+      <div className="sniper-terminal">
+        <header className="sniper-topbar">
+          <div className="sniper-logo">
+            SOL<span>EDGE</span>
           </div>
-          <div className="text-xs text-zinc-600">Worker runs off-Vercel</div>
+          <div className="sniper-status-pill live sniper-mono">
+            <span className="sniper-dot" />
+            DLMM SCAN
+          </div>
+          <div className="sniper-status-pill live sniper-mono">
+            <span className="sniper-dot" />
+            QUOTES
+          </div>
+          <div className="sniper-status-pill warn sniper-mono">
+            <span className="sniper-dot" />
+            WORKER OFF-VERCEL
+          </div>
+          <div className="sniper-topbar-right sniper-mono">
+            <div className="sniper-metric-chip">
+              EXEC <span className="text-[var(--sn-amber)]">WORKER ONLY</span>
+            </div>
+            <div className="sniper-metric-chip">
+              UI <span>NEXT</span>
+            </div>
+          </div>
         </header>
 
-        <div className="flex flex-1 min-h-0">
-          <div className="min-w-0 flex-1 overflow-auto">{children}</div>
-          <aside className="hidden w-64 shrink-0 border-l border-zinc-800/80 bg-zinc-900/20 p-4 text-xs text-zinc-500 xl:block">
+        <div className="sniper-main">
+          <aside className="sniper-sidebar">
+            <div className="sniper-panel-title">
+              SMART MONEY WALLETS{' '}
+              <span className="sniper-mono text-[9px] font-normal normal-case text-[var(--sn-green)]">● soon</span>
+            </div>
+            <div className="sniper-wallet-placeholder sniper-mono">
+              Tracking / social graph is placeholder (legacy HTML had mock wallets). DLMM opportunities load in the center
+              feed.
+            </div>
+            <Link href="/dashboard" className="sniper-link-dash sniper-mono">
+              ● Live feed
+            </Link>
+            <Link href="/" className="sniper-link-dash sniper-mono">
+              ← Simple feed / health
+            </Link>
+          </aside>
+
+          <div className="sniper-center-wrap">
+            <div className="sniper-filter-bar">
+              <span className="sniper-filter-label">FILTERS</span>
+              <span className="sniper-filter-btn on">DLMM</span>
+              <span className="sniper-filter-btn on">INGEST</span>
+              <span className="sniper-filter-btn">meme tier (soon)</span>
+            </div>
+            <div className="sniper-tab-bar">
+              <span className="sniper-tab active">LIVE FEED</span>
+              <span className="sniper-tab text-[var(--sn-text3)]">SMART MONEY · soon</span>
+              <span className="sniper-tab text-[var(--sn-text3)]">RUG DET · soon</span>
+            </div>
+            <div className="sniper-feed-area">{children}</div>
+          </div>
+
+          <aside className="sniper-rpanel">
             <JitoTipPanel />
-            <hr className="my-4 border-zinc-800" />
-            <p className="mb-2 font-medium text-zinc-400">Execution</p>
-            <p>
-              <strong className="text-zinc-300">Simulate snipe</strong> needs{' '}
-              <code className="rounded bg-zinc-800 px-1">HELIUS_API_KEY</code> plus either{' '}
-              <code className="rounded bg-zinc-800 px-1">poolA</code>/<code className="rounded bg-zinc-800 px-1">poolB</code>/
-              <code className="rounded bg-zinc-800 px-1">startMint</code> on the row JSON, or worker-style{' '}
-              <code className="rounded bg-zinc-800 px-1">routeSteps</code> objects (with <code className="rounded bg-zinc-800 px-1">pool</code>). String-only routes cannot re-quote. No wallet / no bundle.
-            </p>
+            <div className="sniper-rp-section">
+              <div className="sniper-rp-title">LATENCY (MOCK)</div>
+              <div className="sniper-rp-body sniper-mono text-[10px] text-[var(--sn-text3)]">
+                Connect Shredstream / Yellowstone in your own infra. Dashboard is read-mostly + server simulate.
+              </div>
+            </div>
+            <div className="sniper-rp-section">
+              <div className="sniper-rp-title">EXECUTION</div>
+              <div className="sniper-rp-body">
+                <strong className="text-[var(--sn-text)]">LIVE swaps</strong> run on the{' '}
+                <span className="sniper-mono text-[var(--sn-cyan)]">worker</span> when{' '}
+                <span className="sniper-mono">EXECUTION_MODE=live</span> and you set the confirmation string +{' '}
+                <span className="sniper-mono">EXECUTOR_SECRET_KEY</span>. Never put the key on Vercel. Bundles/Jito not
+                wired here — RPC send only; profit is not guaranteed.
+              </div>
+            </div>
           </aside>
         </div>
       </div>

@@ -30,12 +30,12 @@ export function SnipeButton({ logId }: { logId: string }) {
             }
           })()
         }}
-        className="rounded-lg border border-emerald-600/50 bg-emerald-950/40 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-900/50 disabled:opacity-50"
+        className="sniper-btn-buy"
       >
         {loading ? 'Simulating…' : 'Simulate snipe'}
       </button>
       {msg && (
-        <p className="mt-2 max-w-[220px] text-[11px] leading-snug text-zinc-400">{msg}</p>
+        <p className="sniper-mono mt-2 max-w-[260px] text-[11px] leading-snug text-[var(--sn-text2)]">{msg}</p>
       )}
     </div>
   )
